@@ -1,18 +1,52 @@
 // Transaction Management Module
 
 /**
- * Load and display recent transactions
+ * Load and display recent transactions with caching
  */
-async function loadRecentTransactions() {
+async function loadRecentTransactions(forceRefresh = false) {
     const tbody = document.getElementById('transactionsBody');
+    
+    // Check cache first unless force refresh is requested
+    if (!forceRefresh && window.DataCache) {
+        const cachedData = DataCache.getCachedTransactions();
+        if (cachedData) {
+            // Parse cached data the same way as fresh data
+            let transactions = null;
+            
+            if (Array.isArray(cachedData)) {
+                transactions = cachedData;
+            } else if (cachedData && cachedData.transactions && Array.isArray(cachedData.transactions)) {
+                transactions = cachedData.transactions;
+            } else if (cachedData && typeof cachedData === 'object') {
+                const keys = Object.keys(cachedData);
+                if (keys.length > 0 && Array.isArray(cachedData[keys[0]])) {
+                    transactions = cachedData[keys[0]];
+                }
+            }
+            
+            if (transactions && transactions.length > 0) {
+                displayRecentTransactions(transactions);
+                return Promise.resolve();
+            } else {
+                console.log('No transactions found in cached data:', cachedData);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No transactions yet</td></tr>';
+                return Promise.resolve();
+            }
+        }
+    }
     
     // Show loading animation
     tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;"><div class="loading-spinner"></div><span style="margin-left: 10px;">Loading transactions...</span></td></tr>';
     
     try {
-        console.log('Fetching from:', window.CONFIG.scriptURL + '?action=getTransactions');
+        console.log('🔄 Fetching fresh data from:', window.CONFIG.scriptURL + '?action=getTransactions');
         const data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getTransactions');
         console.log('Received data:', data);
+        
+        // Cache the received data
+        if (window.DataCache && data) {
+            DataCache.setCachedTransactions(data);
+        }
         
         // Handle different data formats
         let transactions = null;
@@ -125,6 +159,11 @@ function displayRecentTransactions(transactions) {
         // Use setTimeout to ensure buttons are in DOM
         setTimeout(() => disableActionButtons(), 0);
     }
+    
+    // Update charts with new data if charts module is available
+    if (typeof updateCharts === 'function') {
+        updateCharts();
+    }
 }
 
 /**
@@ -133,10 +172,15 @@ function displayRecentTransactions(transactions) {
 function refreshTransactions() {
     const refreshBtn = document.getElementById('refreshBtn');
     
+    // Clear cache to force fresh data
+    if (window.DataCache) {
+        DataCache.clearAllCache();
+    }
+    
     refreshBtn.classList.add('loading');
     refreshBtn.disabled = true;
     
-    loadRecentTransactions().finally(() => {
+    loadRecentTransactions(true).finally(() => { // Force refresh
         refreshBtn.classList.remove('loading');
         refreshBtn.disabled = false;
     });
@@ -277,6 +321,13 @@ function handleEditFormSubmit(e) {
     })
     .then(response => {
         console.log('Update response received');
+        
+        // Clear cache since data has changed
+        if (window.DataCache) {
+            DataCache.clearTransactionCache();
+            DataCache.clearChartCache();
+        }
+        
         // Show success modal
         showSuccessCheckmark('Success! Transaction updated!');
         
@@ -287,7 +338,7 @@ function handleEditFormSubmit(e) {
             
             // Refresh transactions table
             if (typeof loadRecentTransactions === 'function') {
-                loadRecentTransactions();
+                loadRecentTransactions(true); // Force refresh after edit
             }
         }, 2500);
     })
@@ -414,6 +465,13 @@ function handleDelete() {
     })
     .then(response => {
         console.log('Delete response received');
+        
+        // Clear cache since data has changed
+        if (window.DataCache) {
+            DataCache.clearTransactionCache();
+            DataCache.clearChartCache();
+        }
+        
         // Show success modal
         showSuccessCheckmark('Transaction deleted successfully!');
         
@@ -424,7 +482,7 @@ function handleDelete() {
             
             // Refresh transactions table
             if (typeof loadRecentTransactions === 'function') {
-                loadRecentTransactions();
+                loadRecentTransactions(true); // Force refresh after delete
             }
         }, 2500);
     })

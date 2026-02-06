@@ -179,6 +179,12 @@ function doPost(e) {
       return handleUpdateTransaction(sheet, data);
     } else if (data.operation === 'delete') {
       return handleDeleteTransaction(sheet, data);
+    } else if (data.operation === 'addRecurring') {
+      return handleAddRecurring(sheet, data);
+    } else if (data.operation === 'updateRecurring') {
+      return handleUpdateRecurring(sheet, data);
+    } else if (data.operation === 'deleteRecurring') {
+      return handleDeleteRecurring(sheet, data);
     } else {
       // Default: add new transaction (operation === 'add' or no operation specified)
       return handleAddTransaction(sheet, data);
@@ -197,7 +203,7 @@ function handleAddTransaction(sheet, data) {
     // Ensure headers exist
     setupHeaders(sheet);
     
-    // Add a new row with the transaction data
+    // Add a new row with the transaction data (regular transaction)
     sheet.appendRow([
       data.date,
       data.dayOfWeek,
@@ -206,7 +212,14 @@ function handleAddTransaction(sheet, data) {
       data.category,
       data.account,
       data.payee,
-      data.notes || ''
+      data.notes || '',
+      false, // isRecurring
+      '', // frequency
+      '', // startDate
+      '', // endDate
+      '', // nextDue
+      '', // recurringId
+      new Date().toISOString() // createdAt
     ]);
     
     return ContentService.createTextOutput(JSON.stringify({
@@ -219,6 +232,140 @@ function handleAddTransaction(sheet, data) {
   }
 }
 
+function handleAddRecurring(sheet, data) {
+  try {
+    // Ensure headers exist
+    setupHeaders(sheet);
+    
+    // Generate unique ID for recurring transaction
+    var recurringId = 'recurring_' + Utilities.getUuid().replace(/-/g, '').substr(0, 12);
+    
+    // Calculate next due date
+    var nextDue = calculateNextDueDate(data.startDate, data.frequency);
+    
+    // Add recurring transaction record
+    sheet.appendRow([
+      data.startDate,
+      getDayOfWeek(data.startDate),
+      data.type,
+      parseFloat(data.amount),
+      data.category,
+      data.account,
+      data.payee,
+      data.notes || '',
+      true, // isRecurring
+      data.frequency,
+      data.startDate,
+      data.endDate || '',
+      nextDue,
+      recurringId,
+      new Date().toISOString() // createdAt
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      message: 'Recurring transaction added successfully',
+      recurringId: recurringId,
+      nextDue: nextDue
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    throw error;
+  }
+}
+
+function handleUpdateRecurring(sheet, data) {
+  try {
+    setupHeaders(sheet);
+    
+    // Find the recurring transaction by ID
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0];
+    var recurringIdCol = headers.indexOf('RecurringId') + 1;
+    
+    if (recurringIdCol === 0) {
+      throw new Error('RecurringId column not found');
+    }
+    
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][recurringIdCol - 1] === data.recurringId) {
+        var rowIndex = i + 1;
+        
+        // Calculate new next due date if needed
+        var nextDue = data.nextDue || calculateNextDueDate(data.startDate, data.frequency);
+        
+        // Update the row
+        var range = sheet.getRange(rowIndex, 1, 1, 15);
+        range.setValues([[
+          data.startDate,
+          getDayOfWeek(data.startDate),
+          data.type,
+          parseFloat(data.amount),
+          data.category,
+          data.account,
+          data.payee,
+          data.notes || '',
+          true, // isRecurring
+          data.frequency,
+          data.startDate,
+          data.endDate || '',
+          nextDue,
+          data.recurringId,
+          allData[i][14] // Keep original createdAt
+        ]]);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'success',
+          message: 'Recurring transaction updated successfully',
+          nextDue: nextDue
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'Recurring transaction not found'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    throw error;
+  }
+}
+
+function handleDeleteRecurring(sheet, data) {
+  try {
+    setupHeaders(sheet);
+    
+    // Find the recurring transaction by ID
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0];
+    var recurringIdCol = headers.indexOf('RecurringId') + 1;
+    
+    if (recurringIdCol === 0) {
+      throw new Error('RecurringId column not found');
+    }
+    
+    for (var i = 1; i < allData.length; i++) {
+      if (allData[i][recurringIdCol - 1] === data.recurringId) {
+        var rowIndex = i + 1;
+        sheet.deleteRow(rowIndex);
+        
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'success',
+          message: 'Recurring transaction deleted successfully'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'Recurring transaction not found'
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    throw error;
+  }
+}
 function handleUpdateTransaction(sheet, data) {
   try {
     // Ensure headers exist
@@ -230,8 +377,11 @@ function handleUpdateTransaction(sheet, data) {
     // Check if row exists
     var lastRow = sheet.getLastRow();
     if (rowIndex <= lastRow && rowIndex > 1) {
-      // Update the existing row with new data
-      var range = sheet.getRange(rowIndex, 1, 1, 8);
+      // Get existing data to preserve recurring fields
+      var existingData = sheet.getRange(rowIndex, 1, 1, 15).getValues()[0];
+      
+      // Update the existing row with new data, preserving recurring fields
+      var range = sheet.getRange(rowIndex, 1, 1, 15);
       range.setValues([[
         data.date,
         data.dayOfWeek,
@@ -240,7 +390,14 @@ function handleUpdateTransaction(sheet, data) {
         data.category,
         data.account,
         data.payee,
-        data.notes || ''
+        data.notes || '',
+        existingData[8] || false, // preserve isRecurring
+        existingData[9] || '', // preserve frequency
+        existingData[10] || '', // preserve startDate
+        existingData[11] || '', // preserve endDate
+        existingData[12] || '', // preserve nextDue
+        existingData[13] || '', // preserve recurringId
+        existingData[14] || new Date().toISOString() // preserve createdAt
       ]]);
       
       return ContentService.createTextOutput(JSON.stringify({
@@ -303,6 +460,8 @@ function doGet(e) {
     
     if (action === 'getAllTransactions' || !action) {
       response = getAllTransactions(sheet, callback);
+    } else if (action === 'getRecurringTransactions') {
+      response = getRecurringTransactions(sheet, callback);
     } else if (action === 'testConnection') {
       response = testConnection(callback);
     } else {
@@ -338,10 +497,13 @@ function getAllTransactions(sheet, callback) {
     var transactions = [];
     
     if (data.length > 1) {  // Check if there's data beyond headers
-      var headers = data[0] || ['Date', 'Day', 'Type', 'Amount', 'Category', 'Account', 'Payee', 'Notes'];
+      var headers = data[0] || ['Date', 'Day', 'Type', 'Amount', 'Category', 'Account', 'Payee', 'Notes', 'IsRecurring', 'Frequency', 'StartDate', 'EndDate', 'NextDue', 'RecurringId', 'CreatedAt'];
       
       for (var i = 1; i < data.length; i++) {
         var transaction = {};
+        
+        // Skip recurring transaction records (only return actual transactions)
+        if (data[i][8] === true) continue;
         
         for (var j = 0; j < headers.length && j < data[i].length; j++) {
           var headerKey = headers[j];
@@ -418,6 +580,113 @@ function getAllTransactions(sheet, callback) {
   }
 }
 
+function getRecurringTransactions(sheet, callback) {
+  try {
+    // Get all data from the sheet  
+    var data = sheet.getDataRange().getValues();
+    
+    // Convert to JSON format
+    var recurringTransactions = [];
+    
+    if (data.length > 1) {
+      var headers = data[0];
+      
+      for (var i = 1; i < data.length; i++) {
+        // Only include recurring transaction records
+        if (data[i][8] !== true) continue;
+        
+        var transaction = {};
+        
+        for (var j = 0; j < headers.length && j < data[i].length; j++) {
+          var headerKey = headers[j];
+          var value = data[i][j];
+          
+          switch (headerKey) {
+            case 'Date':
+              transaction.date = formatDateForFrontend(value);
+              break;
+            case 'Day':
+              transaction.dayOfWeek = value;
+              break;
+            case 'Type':
+              transaction.type = value;
+              break;
+            case 'Amount':
+              transaction.amount = parseFloat(value) || 0;
+              break;
+            case 'Category':
+              transaction.category = value || 'Uncategorized';
+              break;
+            case 'Account':
+              transaction.account = value;
+              break;
+            case 'Payee':
+              transaction.payee = value;
+              break;
+            case 'Notes':
+              transaction.notes = value || '';
+              break;
+            case 'IsRecurring':
+              transaction.isRecurring = value;
+              break;
+            case 'Frequency':
+              transaction.frequency = value;
+              break;
+            case 'StartDate':
+              transaction.startDate = formatDateForFrontend(value);
+              break;
+            case 'EndDate':
+              transaction.endDate = value ? formatDateForFrontend(value) : null;
+              break;
+            case 'NextDue':
+              transaction.nextDue = formatDateForFrontend(value);
+              break;
+            case 'RecurringId':
+              transaction.id = value;
+              break;
+            case 'CreatedAt':
+              transaction.createdAt = value;
+              break;
+          }
+        }
+        
+        if (transaction.id) {
+          recurringTransactions.push(transaction);
+        }
+      }
+    }
+    
+    var responseData = {
+      status: 'success',
+      recurringTransactions: recurringTransactions,
+      count: recurringTransactions.length
+    };
+    
+    var response = JSON.stringify(responseData);
+    
+    if (callback) {
+      response = callback + '(' + response + ')';
+    }
+    
+    return response;
+    
+  } catch (error) {
+    var errorData = {
+      status: 'error',
+      message: error.toString(),
+      recurringTransactions: []
+    };
+    
+    var response = JSON.stringify(errorData);
+    
+    if (callback) {
+      response = callback + '(' + response + ')';
+    }
+    
+    return response;
+  }
+}
+
 function formatDateForFrontend(dateValue) {
   try {
     var date;
@@ -446,13 +715,70 @@ function formatDateForFrontend(dateValue) {
 function setupHeaders(sheet) {
   // This function sets up the spreadsheet headers if they don't exist
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Date', 'Day', 'Type', 'Amount', 'Category', 'Account', 'Payee', 'Notes']);
+    sheet.appendRow(['Date', 'Day', 'Type', 'Amount', 'Category', 'Account', 'Payee', 'Notes', 'IsRecurring', 'Frequency', 'StartDate', 'EndDate', 'NextDue', 'RecurringId', 'CreatedAt']);
     
     // Format the header row
-    var headerRange = sheet.getRange(1, 1, 1, 8);
+    var headerRange = sheet.getRange(1, 1, 1, 15);
     headerRange.setFontWeight('bold');
     headerRange.setBackground('#4285f4');
     headerRange.setFontColor('white');
+  }
+  
+  // Check if we need to add new columns for existing spreadsheets
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var expectedHeaders = ['Date', 'Day', 'Type', 'Amount', 'Category', 'Account', 'Payee', 'Notes', 'IsRecurring', 'Frequency', 'StartDate', 'EndDate', 'NextDue', 'RecurringId', 'CreatedAt'];
+  
+  if (headers.length < expectedHeaders.length) {
+    // Add missing columns
+    for (var i = headers.length; i < expectedHeaders.length; i++) {
+      sheet.getRange(1, i + 1).setValue(expectedHeaders[i]);
+      sheet.getRange(1, i + 1).setFontWeight('bold');
+      sheet.getRange(1, i + 1).setBackground('#4285f4');
+      sheet.getRange(1, i + 1).setFontColor('white');
+    }
+  }
+}
+
+function calculateNextDueDate(fromDate, frequency) {
+  try {
+    var date = new Date(fromDate);
+    
+    switch (frequency) {
+      case 'daily':
+        date.setDate(date.getDate() + 1);
+        break;
+      case 'weekly':
+        date.setDate(date.getDate() + 7);
+        break;
+      case 'biweekly':
+        date.setDate(date.getDate() + 14);
+        break;
+      case 'monthly':
+        date.setMonth(date.getMonth() + 1);
+        break;
+      case 'quarterly':
+        date.setMonth(date.getMonth() + 3);
+        break;
+      case 'yearly':
+        date.setFullYear(date.getFullYear() + 1);
+        break;
+      default:
+        date.setDate(date.getDate() + 1); // Default to daily
+    }
+    
+    return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  } catch (error) {
+    return fromDate; // Return original date if calculation fails
+  }
+}
+
+function getDayOfWeek(dateValue) {
+  try {
+    var date = new Date(dateValue);
+    var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days[date.getDay()];
+  } catch (error) {
+    return '';
   }
 }
 

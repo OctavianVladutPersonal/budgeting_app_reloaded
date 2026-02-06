@@ -35,8 +35,22 @@ function handleFormSubmit(e) {
     e.preventDefault();
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.innerText = "Sending...";
+    
+    const isRecurring = document.getElementById('isRecurring').checked;
+    
+    if (isRecurring) {
+        btn.innerText = "Creating Recurring...";
+        handleRecurringTransactionSubmit();
+    } else {
+        btn.innerText = "Sending...";
+        handleRegularTransactionSubmit();
+    }
+}
 
+/**
+ * Handle regular (one-time) transaction submission
+ */
+function handleRegularTransactionSubmit() {
     const dateInput = document.getElementById('date');
     const dayInput = document.getElementById('dayOfWeek');
     const today = new Date().toISOString().split('T')[0];
@@ -61,22 +75,157 @@ function handleFormSubmit(e) {
         body: JSON.stringify(payload)
     })
     .then(() => {
+        // Clear cache since data has changed
+        if (window.DataCache) {
+            DataCache.clearTransactionCache();
+            DataCache.clearChartCache();
+        }
+        
         showSuccessCheckmark();
         setTimeout(() => {
             addPayeeToHistory(document.getElementById('payee').value, document.getElementById('category').value);
-            document.getElementById('trackerForm').reset();
-            dateInput.value = today;
-            updateDay();
-            btn.disabled = false;
-            btn.innerText = "Add Transaction";
-            
-            // Automatically refresh the transactions table
-            if (typeof loadRecentTransactions === 'function') {
-                loadRecentTransactions();
-            }
+            resetForm();
         }, 2500);
     })
-    .catch(error => console.error('Error!', error.message));
+    .catch(error => {
+        console.error('Error!', error.message);
+        resetFormButton();
+    });
+}
+
+/**
+ * Handle recurring transaction submission
+ */
+async function handleRecurringTransactionSubmit() {
+    // Validate recurring fields
+    const frequency = document.getElementById('frequency').value;
+    const startDate = document.getElementById('recurringStartDate').value;
+    
+    if (!frequency || !startDate) {
+        alert('Please fill in all required recurring transaction fields.');
+        resetFormButton();
+        return;
+    }
+    
+    const transaction = {
+        amount: parseFloat(document.getElementById('amount').value),
+        payee: document.getElementById('payee').value,
+        category: document.getElementById('category').value,
+        notes: document.getElementById('notes').value,
+        account: document.getElementById('account').value,
+        type: document.getElementById('type').value,
+        frequency: frequency,
+        startDate: startDate,
+        endDate: document.getElementById('recurringEndDate').value || null
+    };
+    
+    try {
+        const result = await RecurringTransactions.add(transaction);
+        
+        if (result) {
+            // Clear cache since recurring data has changed
+            if (window.DataCache) {
+                DataCache.clearRecurringCache();
+                DataCache.clearChartCache(); // Charts might show recurring transaction data
+            }
+            
+            let message = 'Recurring transaction created successfully!';
+            
+            // If start date is today, also process it immediately
+            const today = new Date().toISOString().split('T')[0];
+            if (startDate === today) {
+                // Clear transaction cache too since we're adding a regular transaction
+                if (window.DataCache) {
+                    DataCache.clearTransactionCache();
+                    DataCache.clearChartCache();
+                }
+                
+                try {
+                    const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+                    
+                    const immediatePayload = {
+                        operation: 'add',
+                        date: today,
+                        dayOfWeek: dayOfWeek,
+                        type: transaction.type,
+                        amount: transaction.amount,
+                        category: transaction.category,
+                        account: transaction.account,
+                        payee: transaction.payee,
+                        notes: `${transaction.notes ? transaction.notes + ' - ' : ''}Recurring ${RecurringTransactions.getFrequencyText(frequency).toLowerCase()}`
+                    };
+                    
+                    await fetch(window.CONFIG.scriptURL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(immediatePayload)
+                    });
+                    
+                    message = 'Recurring transaction created and first payment processed!';
+                } catch (error) {
+                    console.error('Error processing immediate transaction:', error);
+                    message = 'Recurring transaction created, but failed to process first payment.';
+                }
+            }
+            
+            showSuccessCheckmark(message);
+            setTimeout(() => {
+                addPayeeToHistory(document.getElementById('payee').value, document.getElementById('category').value);
+                resetForm();
+                
+                // Refresh transactions if immediate processing occurred
+                if (startDate === today && typeof loadRecentTransactions === 'function') {
+                    loadRecentTransactions(true); // Force refresh since we added a transaction
+                }
+            }, 2500);
+        } else {
+            alert('Error creating recurring transaction. Please try again.');
+            resetFormButton();
+        }
+    } catch (error) {
+        console.error('Error creating recurring transaction:', error);
+        alert('Error creating recurring transaction. Please try again.');
+        resetFormButton();
+    }
+}
+
+/**
+ * Reset form to initial state
+ */
+function resetForm() {
+    const btn = document.getElementById('submitBtn');
+    const dateInput = document.getElementById('date');
+    const today = new Date().toISOString().split('T')[0];
+    
+    document.getElementById('trackerForm').reset();
+    dateInput.value = today;
+    updateDay();
+    
+    // Reset category options based on default type (Expense)
+    updateCategoryOptions();
+    
+    // Hide recurring options
+    document.getElementById('recurringOptions').style.display = 'none';
+    document.getElementById('isRecurring').checked = false;
+    
+    resetFormButton();
+    
+    // Automatically refresh the transactions table
+    if (typeof loadRecentTransactions === 'function') {
+        loadRecentTransactions();
+    }
+}
+
+/**
+ * Reset form button to original state
+ */
+function resetFormButton() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = false;
+    btn.innerText = "Add Transaction";
 }
 
 /**
@@ -138,4 +287,9 @@ function setupFormListeners() {
     
     // Form submission
     document.getElementById('trackerForm').addEventListener('submit', handleFormSubmit);
+    
+    // Initialize recurring UI if elements exist
+    if (typeof RecurringUI !== 'undefined' && document.getElementById('isRecurring')) {
+        RecurringUI.setupEventListeners();
+    }
 }

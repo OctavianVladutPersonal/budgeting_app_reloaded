@@ -16,17 +16,25 @@ function navigateTo(page) {
     // Show selected page
     if (page === 'home') {
         document.getElementById('homePage').classList.add('active');
+    } else if (page === 'recurring') {
+        document.getElementById('recurringPage').classList.add('active');
+        // Load all recurring data in a single call
+        setTimeout(async () => {
+            if (typeof RecurringUI !== 'undefined') {
+                await RecurringUI.loadAllRecurringData();
+            }
+        }, 100);
     } else if (page === 'charts') {
         document.getElementById('chartsPage').classList.add('active');
         console.log('Navigating to charts page - forcing fresh data load...');
-        // Force fresh data load every time user visits charts
+        // Reset chart state for fresh rendering but allow cache usage
         chartsInitialized = false;
         isLoadingCharts = false;
         allTransactions = [];
         // Use requestAnimationFrame to ensure DOM is rendered before loading charts
         requestAnimationFrame(() => {
             setTimeout(() => {
-                loadAndDisplayCharts();
+                loadAndDisplayCharts(); // Use cache if available, only fetch if needed
             }, 200);
         });
     } else if (page === 'settings') {

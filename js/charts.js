@@ -39,9 +39,9 @@ function waitForChartJs(maxWait = 5000) {
 }
 
 /**
- * Load transactions and display charts
+ * Load transactions and display charts with caching
  */
-async function loadAndDisplayCharts() {
+async function loadAndDisplayCharts(forceRefresh = false) {
     console.log('Loading and displaying charts...');
     
     // Prevent multiple simultaneous loads
@@ -49,9 +49,6 @@ async function loadAndDisplayCharts() {
         console.log('Charts are already loading, skipping...');
         return;
     }
-    
-    // Always refresh data when explicitly called, don't use cache
-    console.log('Charts loading - forcing fresh data load...');
     
     isLoadingCharts = true;
     
@@ -83,8 +80,27 @@ async function loadAndDisplayCharts() {
     }
     
     try {
-        console.log('Fetching transactions from:', window.CONFIG.scriptURL + '?action=getAllTransactions');
-        const data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getAllTransactions');
+        let data = null;
+        
+        // Check cache first unless force refresh is requested
+        if (!forceRefresh && window.DataCache) {
+            const cachedData = DataCache.getCachedChartTransactions();
+            if (cachedData) {
+                console.log('💾 Using cached chart transaction data');
+                data = cachedData;
+            }
+        }
+        
+        // If no cached data, fetch from API
+        if (!data) {
+            console.log('🔄 Fetching fresh chart data from:', window.CONFIG.scriptURL + '?action=getAllTransactions');
+            data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getAllTransactions');
+            
+            // Cache the received data
+            if (window.DataCache && data) {
+                DataCache.setCachedChartTransactions(data);
+            }
+        }
         
         if (data && data.transactions && Array.isArray(data.transactions)) {
             console.log('Total transactions received:', data.transactions.length);
@@ -757,7 +773,20 @@ function retryLoadCharts() {
     allTransactions = [];
     
     // Retry loading
-    loadAndDisplayCharts();
+    loadAndDisplayCharts(); // Initial load uses cache if available
+}
+
+/**
+ * Update charts after data changes (called from transactions.js)
+ */
+function updateCharts() {
+    if (typeof loadAndDisplayCharts === 'function' && chartsInitialized) {
+        console.log('🔄 Updating charts after data change');
+        loadAndDisplayCharts(true); // Force refresh since data changed
+    } else if (typeof loadAndDisplayCharts === 'function') {
+        console.log('📊 Initializing charts with fresh data');
+        loadAndDisplayCharts(true); // Force refresh for initial load after data change
+    }
 }
 
 // Make retryLoadCharts available globally

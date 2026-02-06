@@ -76,7 +76,7 @@ function initializeMainApp() {
     
     // Load data
     loadPayeeHistory();
-    loadRecentTransactions();
+    loadRecentTransactions(); // Will check cache automatically
     
     // Setup event listeners
     setupEventListeners();
@@ -84,6 +84,16 @@ function initializeMainApp() {
     setupStickyButton();
     setupObfuscateButton();
     setupEditModalListeners();
+    
+    // Check for due recurring transactions in background 
+    setTimeout(() => {
+        checkAndNotifyDueRecurringTransactions();
+    }, 2000);
+    
+    // Request notification permission for recurring transactions
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
 }
 
 /**
@@ -160,6 +170,72 @@ function updateAppWithUserConfig(userConfig) {
         incomeOption.style.display = 'none';
         editCategorySelect.appendChild(incomeOption);
     }
+}
+
+/**
+ * Check for due recurring transactions and notify user
+ */
+async function checkAndNotifyDueRecurringTransactions() {
+    if (typeof RecurringTransactions === 'undefined') return;
+    
+    try {
+        const dueTransactions = await RecurringTransactions.getDueTransactions();
+        
+        if (dueTransactions.length > 0) {
+            const message = `You have ${dueTransactions.length} recurring transaction${dueTransactions.length > 1 ? 's' : ''} that ${dueTransactions.length > 1 ? 'are' : 'is'} due for processing.`;
+            
+            // Show notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Recurring Transactions Due', {
+                    body: message,
+                    icon: 'data:,', // No icon for now
+                    tag: 'recurring-due'
+                });
+            }
+            
+            console.log('📅 ' + message, dueTransactions);
+            
+            // Optionally show a toast notification in the app
+            showDueTransactionsToast(dueTransactions.length);
+        }
+    } catch (error) {
+        console.error('Error checking due recurring transactions:', error);
+    }
+}
+
+/**
+ * Show in-app toast notification for due recurring transactions
+ */
+function showDueTransactionsToast(count) {
+    const toast = document.createElement('div');
+    toast.className = 'recurring-toast';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <span class="toast-icon">🔄</span>
+            <div class="toast-text">
+                <strong>${count} recurring transaction${count > 1 ? 's' : ''} due</strong>
+                <small>Click to process automatically</small>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    toast.addEventListener('click', function(e) {
+        if (e.target.classList.contains('toast-close')) return;
+        
+        // Navigate to recurring page
+        navigateTo('recurring');
+        toast.remove();
+    });
+    
+    document.body.appendChild(toast);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 10000);
 }
 
 /**
