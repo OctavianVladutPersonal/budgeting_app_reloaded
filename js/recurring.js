@@ -48,7 +48,9 @@ class RecurringTransactions {
                 type: transaction.type,
                 frequency: transaction.frequency,
                 startDate: transaction.startDate,
-                endDate: transaction.endDate || ''
+                endDate: transaction.endDate || '',
+                // Use the nextDue exactly as provided by the form, don't recalculate
+                nextDue: transaction.nextDue
             };
             
             const response = await fetch(window.CONFIG.scriptURL, {
@@ -137,7 +139,8 @@ class RecurringTransactions {
         const transactions = await this.getAll();
         
         return transactions.filter(transaction => {
-            if (transaction.endDate && transaction.endDate < today) return false;
+            // Skip transactions with no nextDue (inactive) or past end dates
+            if (!transaction.nextDue || (transaction.endDate && transaction.endDate < today)) return false;
             return transaction.nextDue <= today;
         });
     }
@@ -148,22 +151,81 @@ class RecurringTransactions {
     static async getActiveCount() {
         const transactions = await this.getAll();
         const today = new Date().toISOString().split('T')[0];
-        return transactions.filter(t => (!t.endDate || t.endDate >= today)).length;
+        return transactions.filter(t => {
+            // Transaction is active if it has a nextDue date and hasn't passed its end date
+            return t.nextDue && (!t.endDate || t.endDate >= today);
+        }).length;
     }
     
     /**
      * Mark a recurring transaction as processed and update next due date
      */
     static async markAsProcessed(id) {
+        // Force refresh to get latest data and avoid cache issues
         const transaction = await this.getById(id);
-        if (!transaction) return false;
+        if (!transaction) {
+            console.error(`Cannot mark transaction ${id} as processed - not found`);
+            return false;
+        }
         
-        const nextDue = this.calculateNextDueDate(transaction.nextDue, transaction.frequency);
+        // Double-check the transaction is still due before marking as processed
+        const today = new Date().toISOString().split('T')[0];
+        if (!transaction.nextDue || transaction.nextDue > today) {
+            console.log(`Transaction ${id} is not due today, skipping mark as processed`);
+            return false;
+        }
         
-        return await this.update(id, {
+        let nextDue;
+        
+        // If transaction has an end date equal to today, make it inactive
+        if (transaction.endDate && transaction.endDate === today) {
+            // Set nextDue to null to mark transaction as inactive
+            nextDue = null;
+        } else {
+            // Calculate next due date normally
+            nextDue = this.calculateNextDueDate(transaction.nextDue, transaction.frequency);
+            
+            // But if the calculated next due would be after the end date, also make it inactive
+            if (transaction.endDate && nextDue > transaction.endDate) {
+                nextDue = null;
+            }
+        }
+        
+        const updateResult = await this.update(id, {
             lastProcessed: new Date().toISOString(),
             nextDue: nextDue
         });
+        
+        if (updateResult) {
+            // Clear cache to ensure fresh data on next read
+            if (window.DataCache) {
+                DataCache.clearRecurringCache();
+            }
+        }
+        
+        return updateResult;
+    }
+    
+    /**
+     * Deactivate transactions that have reached their end date (regardless of processing status)
+     */
+    static async deactivateExpiredTransactions() {
+        const today = new Date().toISOString().split('T')[0];
+        const transactions = await this.getAll();
+        
+        // Find transactions that have end date = today and are still active
+        const expiredTransactions = transactions.filter(transaction => {
+            return transaction.endDate === today && transaction.nextDue !== null;
+        });
+        
+        // Deactivate each expired transaction
+        const promises = expiredTransactions.map(transaction => {
+            return this.update(transaction.id, {
+                nextDue: null
+            });
+        });
+        
+        return await Promise.all(promises);
     }
     
     /**
@@ -222,7 +284,10 @@ class RecurringTransactions {
         const today = new Date().toISOString().split('T')[0];
         let status = 'active';
         
-        if (transaction.nextDue < today) {
+        // Check if transaction is inactive (no nextDue)
+        if (!transaction.nextDue) {
+            status = 'inactive';
+        } else if (transaction.nextDue < today) {
             status = 'overdue';
         } else if (transaction.nextDue === today) {
             status = 'due';
@@ -233,7 +298,7 @@ class RecurringTransactions {
             status,
             formattedAmount: parseFloat(transaction.amount).toFixed(2),
             frequencyText: this.getFrequencyText(transaction.frequency),
-            nextDueFormatted: new Date(transaction.nextDue).toLocaleDateString(),
+            nextDueFormatted: transaction.nextDue ? new Date(transaction.nextDue).toLocaleDateString() : 'N/A',
             startDateFormatted: new Date(transaction.startDate).toLocaleDateString(),
             endDateFormatted: transaction.endDate ? new Date(transaction.endDate).toLocaleDateString() : null
         };
@@ -251,6 +316,31 @@ class RecurringUI {
         this.setupEventListeners();
         this.loadRecurringStats();
         this.loadRecurringList();
+        
+        // Automatically process due transactions on page load
+        setTimeout(() => {
+            this.autoProcessDueTransactions();
+        }, 1000); // Delay to allow page to fully load
+    }
+    
+    /**
+     * Automatically process due transactions without user interaction
+     */
+    static async autoProcessDueTransactions() {
+        try {
+            const dueTransactions = await RecurringTransactions.getDueTransactions();
+            
+            if (dueTransactions.length > 0) {
+                console.log(`Auto-processing ${dueTransactions.length} due recurring transactions...`);
+                await RecurringProcessor.processAllDue(true); // true for silent mode
+                
+                // Refresh the UI data after processing
+                await this.loadRecurringStats();
+                await this.loadRecurringList(true); // force refresh
+            }
+        } catch (error) {
+            console.error('Error in auto-processing due transactions:', error);
+        }
     }
     
     /**
@@ -267,20 +357,22 @@ class RecurringUI {
         const frequencySelect = document.getElementById('frequency');
         if (frequencySelect) {
             frequencySelect.addEventListener('change', this.updateRecurringDescription);
+            frequencySelect.addEventListener('change', () => this.updateNextDueDate());
         }
         
         // Recurring start date change
         const startDateInput = document.getElementById('recurringStartDate');
         if (startDateInput) {
-            startDateInput.addEventListener('change', this.updateNextDueDate);
+            startDateInput.addEventListener('change', () => this.updateNextDueDate());
         }
         
-        // Modal forms
-        const addRecurringForm = document.getElementById('addRecurringForm');
-        if (addRecurringForm) {
-            addRecurringForm.addEventListener('submit', this.handleAddRecurring);
+        // Recurring end date change
+        const endDateInput = document.getElementById('recurringEndDate');
+        if (endDateInput) {
+            endDateInput.addEventListener('change', () => this.updateNextDueDate());
         }
         
+        // Modal forms - only edit recurring form is needed
         const editRecurringForm = document.getElementById('editRecurringForm');
         if (editRecurringForm) {
             editRecurringForm.addEventListener('submit', this.handleEditRecurring);
@@ -323,6 +415,7 @@ class RecurringUI {
                 frequencySelect.setAttribute('required', 'required');
             }
             RecurringUI.updateRecurringDescription();
+            RecurringUI.updateNextDueDate(); // Initialize next due date
         } else {
             recurringOptions.style.display = 'none';
             // Remove required attribute when recurring is disabled
@@ -363,45 +456,87 @@ class RecurringUI {
     static updateNextDueDate() {
         const frequency = document.getElementById('frequency').value;
         const startDate = document.getElementById('recurringStartDate').value;
+        const endDate = document.getElementById('recurringEndDate').value;
         const nextDueDateInput = document.getElementById('nextDueDate');
         
         if (frequency && startDate) {
-            const nextDue = RecurringTransactions.calculateNextDueDate(startDate, frequency);
+            let nextDue = RecurringTransactions.calculateNextDueDate(startDate, frequency);
+            
+            // If end date is set, ensure next due date doesn't exceed it
+            if (endDate && nextDue > endDate) {
+                // Calculate the last valid occurrence before or on the end date
+                nextDue = this.calculateLastValidDueDateBeforeEndDate(startDate, frequency, endDate);
+            }
+            
             nextDueDateInput.value = nextDue;
         }
     }
     
     /**
-     * Handle adding a recurring transaction
+     * Calculate the last valid due date that falls before or on the end date
      */
-    static async handleAddRecurring(event) {
-        event.preventDefault();
+    static calculateLastValidDueDateBeforeEndDate(startDate, frequency, endDate) {
+        let currentDate = new Date(startDate);
+        let lastValidDate = startDate;
         
-        const transaction = {
-            amount: parseFloat(document.getElementById('recurringModalAmount').value),
-            payee: document.getElementById('recurringModalPayee').value,
-            category: document.getElementById('recurringModalCategory').value,
-            notes: document.getElementById('recurringModalNotes').value,
-            account: document.getElementById('recurringModalAccount').value,
-            type: document.getElementById('recurringModalType').value,
-            frequency: document.getElementById('recurringModalFrequency').value,
-            startDate: document.getElementById('recurringModalStartDate').value,
-            endDate: document.getElementById('recurringModalEndDate').value || null
-        };
-        
-        const result = await RecurringTransactions.add(transaction);
-        
-        if (result) {
-            showSuccessCheckmark('Recurring transaction created successfully!');
-            document.getElementById('addRecurringForm').reset();
-            closeAddRecurringModal();
-            await RecurringUI.loadRecurringStats();
-            await RecurringUI.loadRecurringList();
-        } else {
-            alert('Error creating recurring transaction. Please try again.');
+        // Keep calculating next dates until we exceed the end date
+        while (currentDate.toISOString().split('T')[0] <= endDate) {
+            lastValidDate = currentDate.toISOString().split('T')[0];
+            
+            // Calculate next occurrence
+            switch (frequency) {
+                case 'daily':
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    break;
+                case 'weekly':
+                    currentDate.setDate(currentDate.getDate() + 7);
+                    break;
+                case 'biweekly':
+                    currentDate.setDate(currentDate.getDate() + 14);
+                    break;
+                case 'monthly':
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                    break;
+                case 'quarterly':
+                    currentDate.setMonth(currentDate.getMonth() + 3);
+                    break;
+                case 'yearly':
+                    currentDate.setFullYear(currentDate.getFullYear() + 1);
+                    break;
+                default:
+                    // Default to daily if unknown frequency
+                    currentDate.setDate(currentDate.getDate() + 1);
+            }
         }
+        
+        return lastValidDate;
     }
     
+    /**
+     * Refresh the recurring transactions list
+     */
+    static async refreshRecurringList() {
+        try {
+            // Show loading state
+            const tbody = document.querySelector('#recurringTransactionsTable tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">🔄 Refreshing...</td></tr>';
+            }
+            
+            // Force refresh data from server
+            await this.loadRecurringList(true); // true forces cache refresh
+            await this.loadRecurringStats();
+            
+            console.log('Recurring transactions list refreshed');
+        } catch (error) {
+            console.error('Error refreshing recurring transactions:', error);
+            const tbody = document.querySelector('#recurringTransactionsTable tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #dc3545;">❌ Error refreshing data. Please try again.</td></tr>';
+            }
+        }
+    }
+
     /**
      * Handle editing a recurring transaction
      */
@@ -484,7 +619,7 @@ class RecurringUI {
     /**
      * Load and display recurring transactions list
      */
-    static async loadRecurringList() {
+    static async loadRecurringList(forceRefresh = false) {
         const tbody = document.getElementById('recurringTransactionsBody');
         
         if (!tbody) return;
@@ -493,7 +628,7 @@ class RecurringUI {
         tbody.innerHTML = '<tr><td colspan=\"8\" style=\"text-align: center; color: #999;\">Loading recurring transactions...</td></tr>';
         
         try {
-            const transactions = await RecurringTransactions.getAll();
+            const transactions = await RecurringTransactions.getAll(forceRefresh);
             
             if (transactions.length === 0) {
                 tbody.innerHTML = '<tr><td colspan=\"8\" style=\"text-align: center; color: #999;\">No recurring transactions set up yet.<br><small>Create one by adding a transaction and checking \"Make this a recurring transaction\"</small></td></tr>';
@@ -787,56 +922,86 @@ class RecurringUI {
  * Processing recurring transactions
  */
 class RecurringProcessor {
+    // Track currently processing transactions to prevent duplicates
+    static processingTransactions = new Set();
+    
     /**
      * Process all due recurring transactions
      */
-    static async processAllDue() {
+    static async processAllDue(silentMode = false) {
         const dueTransactions = await RecurringTransactions.getDueTransactions();
         
         if (dueTransactions.length === 0) {
-            showSuccessCheckmark('No recurring transactions are currently due.');
+            if (!silentMode) {
+                showSuccessCheckmark('No recurring transactions are currently due.');
+            }
             return;
         }
         
-        const processBtn = document.getElementById('processRecurringBtn');
-        if (processBtn) {
-            processBtn.disabled = true;
-            processBtn.textContent = '⏳ Processing...';
+        // Filter out transactions that are already being processed
+        const transactionsToProcess = dueTransactions.filter(t => !this.processingTransactions.has(t.id));
+        
+        if (transactionsToProcess.length === 0) {
+            console.log('All due transactions are already being processed.');
+            return;
         }
         
         let successCount = 0;
         let errors = [];
         
-        for (const recurringTransaction of dueTransactions) {
+        for (const recurringTransaction of transactionsToProcess) {
+            // Mark as currently processing
+            this.processingTransactions.add(recurringTransaction.id);
+            
             try {
+                // Double-check the transaction is still due (prevent race conditions)
+                const currentTransaction = await RecurringTransactions.getById(recurringTransaction.id);
+                if (!currentTransaction || !currentTransaction.nextDue) {
+                    console.log(`Transaction ${recurringTransaction.id} no longer due, skipping`);
+                    continue;
+                }
+                
+                const today = new Date().toISOString().split('T')[0];
+                if (currentTransaction.nextDue > today) {
+                    console.log(`Transaction ${recurringTransaction.id} no longer due today, skipping`);
+                    continue;
+                }
+                
                 const success = await this.processRecurringTransaction(recurringTransaction);
                 if (success) {
-                    successCount++;
-                    // Small delay to ensure transaction is properly added to spreadsheet
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    await RecurringTransactions.markAsProcessed(recurringTransaction.id);
+                    // Immediately mark as processed to prevent duplicate processing
+                    const markResult = await RecurringTransactions.markAsProcessed(recurringTransaction.id);
+                    if (markResult) {
+                        successCount++;
+                    } else {
+                        errors.push(`Failed to mark ${recurringTransaction.payee} as processed`);
+                    }
                 } else {
                     errors.push(`Failed to process: ${recurringTransaction.payee}`);
                 }
             } catch (error) {
                 console.error('Error processing recurring transaction:', error);
                 errors.push(`Error with ${recurringTransaction.payee}: ${error.message}`);
+            } finally {
+                // Always remove from processing set
+                this.processingTransactions.delete(recurringTransaction.id);
             }
         }
         
-        // Re-enable button
-        if (processBtn) {
-            processBtn.disabled = false;
-            processBtn.textContent = '🔄 Process Due';
+        // Show results only if not in silent mode
+        if (!silentMode) {
+            let message = `Processed ${successCount} of ${transactionsToProcess.length} recurring transactions.`;
+            if (errors.length > 0) {
+                message += '\n\nErrors:\n' + errors.join('\n');
+            }
+            showSuccessCheckmark(message);
+        } else {
+            // Just log the results for automatic processing
+            console.log(`Auto-processed ${successCount} of ${transactionsToProcess.length} recurring transactions.`);
+            if (errors.length > 0) {
+                console.warn('Auto-processing errors:', errors);
+            }
         }
-        
-        // Show results
-        let message = `Processed ${successCount} of ${dueTransactions.length} recurring transactions.`;
-        if (errors.length > 0) {
-            message += '\n\nErrors:\n' + errors.join('\n');
-        }
-        
-        showSuccessCheckmark(message);
         
         // Refresh UI
         await RecurringUI.loadRecurringStats();
@@ -901,24 +1066,10 @@ class RecurringProcessor {
 /**
  * Global functions for UI interactions
  */
-function openAddRecurringModal() {
-    // Ensure account dropdown is populated before opening modal
-    const accountSelect = document.getElementById('recurringModalAccount');
-    if (accountSelect && window.userConfig && window.userConfig.accounts) {
-        // Only repopulate if the dropdown appears empty or has hardcoded values
-        if (accountSelect.children.length <= 2 || accountSelect.querySelector('option[value="Ale"]')) {
-            accountSelect.innerHTML = '';
-            window.userConfig.accounts.forEach(account => {
-                const option = document.createElement('option');
-                option.value = account;
-                option.textContent = account;
-                accountSelect.appendChild(option);
-            });
-        }
-    }
-    
-    const modal = document.getElementById('addRecurringModal');
-    modal.classList.add('show');
+// Note: openAddRecurringModal function removed - add functionality disabled
+
+function refreshRecurringList() {
+    RecurringUI.refreshRecurringList();
 }
 
 function closeAddRecurringModal() {
@@ -1047,9 +1198,7 @@ async function handleDeleteRecurring() {
     }
 }
 
-function processRecurringTransactions() {
-    RecurringProcessor.processAllDue();
-}
+// Note: processRecurringTransactions function removed - automatic processing now enabled
 
 /**
  * Show error message using the success modal but with error styling

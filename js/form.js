@@ -105,6 +105,10 @@ async function handleRecurringTransactionSubmit() {
         return;
     }
     
+    // Get the actual values from the form fields as the user set them
+    const nextDueDateValue = document.getElementById('nextDueDate').value;
+    const endDateValue = document.getElementById('recurringEndDate').value;
+    
     const transaction = {
         amount: parseFloat(document.getElementById('amount').value),
         payee: document.getElementById('payee').value,
@@ -114,8 +118,13 @@ async function handleRecurringTransactionSubmit() {
         type: document.getElementById('type').value,
         frequency: frequency,
         startDate: startDate,
-        endDate: document.getElementById('recurringEndDate').value || null
+        endDate: endDateValue || null,
+        // Only use startDate as fallback if nextDue field is empty, otherwise use the calculated/displayed value
+        nextDue: nextDueDateValue || startDate
     };
+    
+    // Debug: Log the transaction object to see what's being sent
+    console.log('Recurring transaction being created:', transaction);
     
     try {
         const result = await RecurringTransactions.add(transaction);

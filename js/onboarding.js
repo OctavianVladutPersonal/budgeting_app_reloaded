@@ -240,8 +240,8 @@ function handleAddRecurring(sheet, data) {
     // Generate unique ID for recurring transaction
     var recurringId = 'recurring_' + Utilities.getUuid().replace(/-/g, '').substr(0, 12);
     
-    // Calculate next due date
-    var nextDue = calculateNextDueDate(data.startDate, data.frequency);
+    // Calculate next due date - use provided nextDue if available, otherwise calculate it
+    var nextDue = data.nextDue || calculateNextDueDate(data.startDate, data.frequency);
     
     // Add recurring transaction record
     sheet.appendRow([
