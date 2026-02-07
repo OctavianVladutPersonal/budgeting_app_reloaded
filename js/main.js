@@ -9,15 +9,10 @@ const today = new Date().toISOString().split('T')[0];
  * Main initialization function
  */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Main: DOM loaded, checking onboarding status...');
-    
     // Check if user needs onboarding
     const isOnboardingComplete = UserConfig.isOnboardingComplete();
-    console.log('Main: UserConfig.isOnboardingComplete() returned:', isOnboardingComplete);
-    console.log('Main: localStorage value for onboarding key:', localStorage.getItem('budgetApp_onboardingComplete'));
     
     if (!isOnboardingComplete) {
-        console.log('Main: Onboarding not complete, showing onboarding flow');
         // Hide navigation during onboarding
         const navbar = document.getElementById('mainNavbar');
         if (navbar) navbar.style.display = 'none';
@@ -35,8 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return; // Don't initialize main app yet
     }
     
-    console.log('Main: Onboarding complete, loading main app');
-    
     // Switch from onboarding page to main app
     document.getElementById('onboardingPage').classList.remove('active');
     document.getElementById('homePage').classList.add('active');
@@ -48,6 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load user configuration and update app
     const userConfig = UserConfig.getConfig();
     if (userConfig) {
+        // Store user config globally for access by other modules
+        window.userConfig = userConfig;
+        
         // Update global CONFIG with user's settings
         Object.assign(window.CONFIG, {
             scriptURL: userConfig.scriptURL,
@@ -103,6 +99,8 @@ function updateAppWithUserConfig(userConfig) {
     // Update account dropdown
     const accountSelect = document.getElementById('account');
     const editAccountSelect = document.getElementById('editAccount');
+    const recurringModalAccountSelect = document.getElementById('recurringModalAccount');
+    const editRecurringAccountSelect = document.getElementById('editRecurringAccount');
     
     if (accountSelect && userConfig.accounts) {
         accountSelect.innerHTML = '';
@@ -121,6 +119,27 @@ function updateAppWithUserConfig(userConfig) {
             option.value = account;
             option.textContent = account;
             editAccountSelect.appendChild(option);
+        });
+    }
+    
+    // Update recurring modal account dropdowns
+    if (recurringModalAccountSelect && userConfig.accounts) {
+        recurringModalAccountSelect.innerHTML = '';
+        userConfig.accounts.forEach(account => {
+            const option = document.createElement('option');
+            option.value = account;
+            option.textContent = account;
+            recurringModalAccountSelect.appendChild(option);
+        });
+    }
+    
+    if (editRecurringAccountSelect && userConfig.accounts) {
+        editRecurringAccountSelect.innerHTML = '';
+        userConfig.accounts.forEach(account => {
+            const option = document.createElement('option');
+            option.value = account;
+            option.textContent = account;
+            editRecurringAccountSelect.appendChild(option);
         });
     }
 
@@ -192,8 +211,6 @@ async function checkAndNotifyDueRecurringTransactions() {
                     tag: 'recurring-due'
                 });
             }
-            
-            console.log('📅 ' + message, dueTransactions);
             
             // Optionally show a toast notification in the app
             showDueTransactionsToast(dueTransactions.length);

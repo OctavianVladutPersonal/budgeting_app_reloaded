@@ -371,8 +371,13 @@ function handleUpdateTransaction(sheet, data) {
     // Ensure headers exist
     setupHeaders(sheet);
     
-    // Get the row index (add 1 because spreadsheet rows are 1-indexed, and +1 more for header)
-    var rowIndex = parseInt(data.rowIndex) + 1;
+    // Use the rowIndex directly (it's already the correct spreadsheet row number)
+    var rowIndex = parseInt(data.rowIndex);
+    
+    // Validate rowIndex
+    if (!rowIndex || rowIndex < 2) { // Must be >= 2 (after header)
+      throw new Error('Invalid rowIndex: ' + rowIndex);
+    }
     
     // Check if row exists
     var lastRow = sheet.getLastRow();
@@ -421,8 +426,13 @@ function handleDeleteTransaction(sheet, data) {
     // Ensure headers exist
     setupHeaders(sheet);
     
-    // Get the row index (add 1 because spreadsheet rows are 1-indexed with header)
-    var rowIndex = parseInt(data.rowIndex) + 1;
+    // Use the rowIndex directly (it's already the correct spreadsheet row number)
+    var rowIndex = parseInt(data.rowIndex);
+    
+    // Validate rowIndex
+    if (!rowIndex || rowIndex < 2) { // Must be >= 2 (after header)
+      throw new Error('Invalid rowIndex: ' + rowIndex);
+    }
     
     // Check if row exists
     var lastRow = sheet.getLastRow();
@@ -458,7 +468,7 @@ function doGet(e) {
     var callback = e.parameter.callback;
     var response;
     
-    if (action === 'getAllTransactions' || !action) {
+    if (action === 'getAllTransactions' || action === 'getTransactions' || !action) {
       response = getAllTransactions(sheet, callback);
     } else if (action === 'getRecurringTransactions') {
       response = getRecurringTransactions(sheet, callback);
@@ -543,6 +553,8 @@ function getAllTransactions(sheet, callback) {
         
         // Only add non-empty transactions
         if (transaction.date || transaction.amount) {
+          // Add rowIndex for edit/delete operations (i+1 because spreadsheet rows are 1-based)
+          transaction.rowIndex = i + 1;
           transactions.push(transaction);
         }
       }
@@ -1112,25 +1124,14 @@ function testConnection(callback) {
      * Complete onboarding process
      */
     complete() {
-        console.log('OnboardingManager: Starting completion process');
-        console.log('Current step:', this.currentStep);
-        console.log('Config:', this.config);
-        
         if (this.validateCurrentStep()) {
-            console.log('OnboardingManager: Step validation passed');
             this.saveCurrentStepData();
             
             // Save final configuration
-            console.log('OnboardingManager: Saving configuration...');
             if (UserConfig.saveConfig(this.config)) {
-                console.log('OnboardingManager: Configuration saved successfully');
-                console.log('OnboardingManager: Setting onboarding as complete...');
-                UserConfig.setOnboardingComplete();
-                console.log('OnboardingManager: Onboarding marked as complete');
                 
                 // Verify it was saved
                 const isComplete = UserConfig.isOnboardingComplete();
-                console.log('OnboardingManager: Verification - onboarding complete?', isComplete);
                 
                 this.showCompletionSuccess();
                 
@@ -1143,7 +1144,6 @@ function testConnection(callback) {
                 this.showStepError('Failed to save configuration. Please try again.');
             }
         } else {
-            console.log('OnboardingManager: Step validation failed');
         }
     }
 

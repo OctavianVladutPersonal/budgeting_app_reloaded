@@ -42,11 +42,8 @@ function waitForChartJs(maxWait = 5000) {
  * Load transactions and display charts with caching
  */
 async function loadAndDisplayCharts(forceRefresh = false) {
-    console.log('Loading and displaying charts...');
-    
     // Prevent multiple simultaneous loads
     if (isLoadingCharts) {
-        console.log('Charts are already loading, skipping...');
         return;
     }
     
@@ -55,7 +52,6 @@ async function loadAndDisplayCharts(forceRefresh = false) {
     try {
         // Wait for Chart.js to be available
         await waitForChartJs();
-        console.log('Chart.js is ready');
     } catch (error) {
         console.error('Chart.js is not available:', error);
         showMessage('Charts cannot be displayed. Chart.js library failed to load. Please check your internet connection and refresh the page.', true);
@@ -86,14 +82,12 @@ async function loadAndDisplayCharts(forceRefresh = false) {
         if (!forceRefresh && window.DataCache) {
             const cachedData = DataCache.getCachedChartTransactions();
             if (cachedData) {
-                console.log('💾 Using cached chart transaction data');
                 data = cachedData;
             }
         }
         
         // If no cached data, fetch from API
         if (!data) {
-            console.log('🔄 Fetching fresh chart data from:', window.CONFIG.scriptURL + '?action=getAllTransactions');
             data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getAllTransactions');
             
             // Cache the received data
@@ -103,26 +97,15 @@ async function loadAndDisplayCharts(forceRefresh = false) {
         }
         
         if (data && data.transactions && Array.isArray(data.transactions)) {
-            console.log('Total transactions received:', data.transactions.length);
             allTransactions = data.transactions;
             
             // Debug: Log first few transactions to see date format
             if (data.transactions.length > 0) {
-                console.log('Sample transactions:', data.transactions.slice(0, 5));
-                console.log('First transaction date:', data.transactions[0].date, 'Type:', typeof data.transactions[0].date);
-                
                 // Check for today's transactions specifically
                 const todaysTransactions = data.transactions.filter(t => {
                     const txDateStr = typeof t.date === 'string' ? t.date : String(t.date);
                     return txDateStr.includes('2026-02-06') || txDateStr.includes('02/06/2026') || txDateStr.includes('6/2/2026');
                 });
-                console.log('🔍 Found transactions for TODAY (2026-02-06):', todaysTransactions.length);
-                if (todaysTransactions.length > 0) {
-                    console.log('✅ TODAY\'S TRANSACTIONS:', todaysTransactions);
-                } else {
-                    console.log('❌ NO transactions found for today. Check if transaction was saved with correct date.');
-                    console.log('🔍 All dates in system:', data.transactions.map(t => ({date: t.date, amount: t.amount, category: t.category})));
-                }
             }
             
             // Set default date range to current month
@@ -137,7 +120,6 @@ async function loadAndDisplayCharts(forceRefresh = false) {
             // Mark as initialized
             chartsInitialized = true;
         } else {
-            console.log('No transactions available for charts');
             // Show a message to the user
             showMessage('No transaction data available. Please ensure your Google Sheet is properly configured and contains data.');
         }
@@ -157,29 +139,22 @@ function setDefaultDateRange() {
     const year = today.getFullYear();
     const month = today.getMonth();
     
-    console.log('Setting default date range - Today:', today.toDateString(), 'Year:', year, 'Month:', month);
-    
     // First day of the current month
     const firstDay = new Date(year, month, 1);
     // Last day of the current month (first day of next month - 1)
     const lastDay = new Date(year, month + 1, 0);
-    
-    console.log('Date range - First day:', firstDay.toDateString(), 'Last day:', lastDay.toDateString());
-    console.log('Formatted - First day:', formatDate(firstDay), 'Last day:', formatDate(lastDay));
     
     const startDateInput = document.getElementById('chartStartDate');
     const endDateInput = document.getElementById('chartEndDate');
     
     if (startDateInput) {
         startDateInput.value = formatDate(firstDay);
-        console.log('Set start date input to:', startDateInput.value);
     } else {
         console.error('chartStartDate input not found');
     }
     
     if (endDateInput) {
         endDateInput.value = formatDate(lastDay);
-        console.log('Set end date input to:', endDateInput.value);
     } else {
         console.error('chartEndDate input not found');
     }
@@ -189,12 +164,9 @@ function setDefaultDateRange() {
  * Setup filter button and quick filter buttons
  */
 function setupFilterButton() {
-    console.log('Setting up chart filter buttons...');
-    
     const applyBtn = document.getElementById('applyFilterBtn');
     if (applyBtn) {
         applyBtn.addEventListener('click', updateChartsWithFilter);
-        console.log('Apply filter button event listener added');
     } else {
         console.error('Apply filter button not found');
     }
@@ -207,28 +179,24 @@ function setupFilterButton() {
     
     if (todayBtn) {
         todayBtn.addEventListener('click', () => setFilterAndApply('today'));
-        console.log('Today button event listener added');
     } else {
         console.error('Today button not found');
     }
     
     if (lastMonthBtn) {
         lastMonthBtn.addEventListener('click', () => setFilterAndApply('lastMonth'));
-        console.log('Last month button event listener added');
     } else {
         console.error('Last month button not found');
     }
     
     if (thisMonthBtn) {
         thisMonthBtn.addEventListener('click', () => setFilterAndApply('thisMonth'));
-        console.log('This month button event listener added');
     } else {
         console.error('This month button not found');
     }
     
     if (thisYearBtn) {
         thisYearBtn.addEventListener('click', () => setFilterAndApply('thisYear'));
-        console.log('This year button event listener added');
     } else {
         console.error('This year button not found');
     }
@@ -243,35 +211,24 @@ function setFilterAndApply(filterType) {
     const month = today.getMonth();
     let startDate, endDate;
     
-    console.log('setFilterAndApply called with filterType:', filterType, 'Today:', today.toDateString());
-    
     if (filterType === 'today') {
         startDate = today;
         endDate = today;
-        console.log('Setting filter to TODAY:');
-        console.log('  - Today object:', today);
-        console.log('  - Today toDateString():', today.toDateString());
-        console.log('  - Today toISOString():', today.toISOString());
-        console.log('  - Start date formatted:', formatDate(startDate));
-        console.log('  - End date formatted:', formatDate(endDate));
     } else if (filterType === 'lastMonth') {
         const lastMonthStart = new Date(year, month - 1, 1);
         const lastMonthEnd = new Date(year, month, 0);
         startDate = lastMonthStart;
         endDate = lastMonthEnd;
-        console.log('Setting filter to LAST MONTH - Start:', startDate.toDateString(), 'End:', endDate.toDateString());
     } else if (filterType === 'thisMonth') {
         const monthStart = new Date(year, month, 1);
         const monthEnd = new Date(year, month + 1, 0);
         startDate = monthStart;
         endDate = monthEnd;
-        console.log('Setting filter to THIS MONTH - Start:', startDate.toDateString(), 'End:', endDate.toDateString());
     } else if (filterType === 'thisYear') {
         const yearStart = new Date(year, 0, 1);
         const yearEnd = new Date(year, 11, 31);
         startDate = yearStart;
         endDate = yearEnd;
-        console.log('Setting filter to THIS YEAR - Start:', startDate.toDateString(), 'End:', endDate.toDateString());
     }
     
     const startDateInput = document.getElementById('chartStartDate');
@@ -279,12 +236,10 @@ function setFilterAndApply(filterType) {
     
     if (startDateInput) {
         startDateInput.value = formatDate(startDate);
-        console.log('Set start date input to:', startDateInput.value);
     }
     
     if (endDateInput) {
         endDateInput.value = formatDate(endDate);
-        console.log('Set end date input to:', endDateInput.value);
     }
     
     // Apply filter immediately
@@ -302,17 +257,8 @@ function updateChartsWithFilter() {
         alert('Please select both start and end dates');
         return;
     }
-    
-    console.log('Filter dates - Start:', startDate, 'End:', endDate);
-    console.log('All transactions before filtering:', allTransactions.length);
-    
+
     // Debug: Show all transaction dates to understand format
-    console.log('All transaction dates:', allTransactions.map(t => ({
-        date: t.date, 
-        type: typeof t.date, 
-        amount: t.amount,
-        category: t.category
-    })));
     
     // Filter transactions by date range (inclusive)
     const filteredTransactions = allTransactions.filter(transaction => {
@@ -331,61 +277,31 @@ function updateChartsWithFilter() {
             txDate = String(txDate).trim();
         }
         
-        console.log('Processing transaction:', {
-            originalDate: originalTxDate,
-            processedDate: txDate,
-            startDate: startDate,
-            endDate: endDate,
-            greaterThanStart: txDate >= startDate,
-            lessThanEnd: txDate <= endDate,
-            inRange: txDate >= startDate && txDate <= endDate,
-            amount: transaction.amount,
-            category: transaction.category
-        });
-        
         // Debug log for dates that should match
         if (txDate === '2026-02-06') {
-            console.log('Found TODAY (02/06/2026) transaction:', txDate, 'Start:', startDate, 'End:', endDate, 'In range:', txDate >= startDate && txDate <= endDate);
+            // Transaction found for today
         }
         
         // Debug log for any February 2026 transaction
         if (txDate && txDate.startsWith('2026-02')) {
-            console.log('Found Feb 2026 transaction:', {
-                txDate: txDate,
-                startDate: startDate,
-                endDate: endDate,
-                greaterThanStart: txDate >= startDate,
-                lessThanEnd: txDate <= endDate,
-                inRange: txDate >= startDate && txDate <= endDate
-            });
+            // February 2026 transaction found
         }
         
         // Compare dates as strings (YYYY-MM-DD format allows proper string comparison)
         const isInRange = txDate >= startDate && txDate <= endDate;
         
-        if (isInRange) {
-            console.log('✅ INCLUDED transaction:', txDate, transaction.amount, transaction.category);
-        } else {
-            console.log('❌ EXCLUDED transaction:', txDate, '(not between', startDate, 'and', endDate, ')');
-        }
-        
         return isInRange;
     });
-    
-    console.log('Total transactions:', allTransactions.length);
-    console.log('Filtered transactions:', filteredTransactions.length);
-    
+
     // Debug: Check if any transactions have today's date in different formats
     const todayFormats = ['2026-02-06', '02/06/2026', '6/2/2026', '2/6/2026', 'Feb 6, 2026', 'February 6, 2026'];
     const possibleTodayTransactions = allTransactions.filter(t => {
         const dateStr = String(t.date).toLowerCase();
         return todayFormats.some(format => dateStr.includes(format.toLowerCase()));
     });
-    console.log('Transactions that might be for today (checking various formats):', possibleTodayTransactions);
     
     if (filteredTransactions.length > 0) {
-        console.log('First filtered transaction:', filteredTransactions[0]);
-        console.log('Last filtered transaction:', filteredTransactions[filteredTransactions.length - 1]);
+        // First and last transactions exist
     }
     displayCharts(filteredTransactions);
 }
@@ -423,8 +339,6 @@ function displayCharts(transactions) {
  * Display expenses by category pie chart
  */
 function displayExpensesCategoryChart(categoryData) {
-    console.log('Displaying expenses category chart...');
-    
     const ctx = document.getElementById('expensesCategoryChart');
     if (!ctx) {
         console.error('Canvas element expensesCategoryChart not found');
@@ -447,7 +361,6 @@ function displayExpensesCategoryChart(categoryData) {
     
     // Check if there's data to display
     if (labels.length === 0) {
-        console.log('No category data to display');
         const chartWrapper = ctx.closest('.chart-wrapper');
         if (chartWrapper) {
             const existingMessage = chartWrapper.querySelector('.no-data-message');
@@ -473,8 +386,6 @@ function displayExpensesCategoryChart(categoryData) {
     
     // Generate colors for pie chart
     const colors = generateColors(labels.length);
-    
-    console.log('Creating pie chart with', labels.length, 'categories');
     
     expensesCategoryChart = new Chart(ctx, {
         type: 'pie',
@@ -520,8 +431,6 @@ function displayExpensesCategoryChart(categoryData) {
  * Display expenses vs income bar chart
  */
 function displayExpensesVsIncomeChart(totalExpenses, totalIncome) {
-    console.log('Displaying expenses vs income chart...');
-    
     const ctx = document.getElementById('expensesVsIncomeChart');
     if (!ctx) {
         console.error('Canvas element expensesVsIncomeChart not found');
@@ -538,8 +447,6 @@ function displayExpensesVsIncomeChart(totalExpenses, totalIncome) {
     if (expensesVsIncomeChart) {
         expensesVsIncomeChart.destroy();
     }
-    
-    console.log('Creating income/expense chart - Income:', totalIncome, 'Expenses:', totalExpenses);
     
     expensesVsIncomeChart = new Chart(ctx, {
         type: 'bar',
@@ -604,8 +511,6 @@ function displayExpensesVsIncomeChart(totalExpenses, totalIncome) {
  * Display expenses by category horizontal bar chart
  */
 function displayExpensesCategoryBarChart(categoryData) {
-    console.log('Displaying expenses category bar chart...');
-    
     const ctx = document.getElementById('expensesCategoryBarChart');
     if (!ctx) {
         console.error('Canvas element expensesCategoryBarChart not found');
@@ -632,7 +537,6 @@ function displayExpensesCategoryBarChart(categoryData) {
     
     // Check if there's data to display
     if (labels.length === 0) {
-        console.log('No category data to display for bar chart');
         const chartWrapper = ctx.closest('.chart-wrapper');
         if (chartWrapper) {
             const existingMessage = chartWrapper.querySelector('.no-data-message');
@@ -658,8 +562,6 @@ function displayExpensesCategoryBarChart(categoryData) {
     
     // Generate colors for each category
     const colors = generateColors(labels.length);
-    
-    console.log('Creating bar chart with', labels.length, 'categories');
     
     expensesCategoryBarChart = new Chart(ctx, {
         type: 'bar',
@@ -718,8 +620,6 @@ function displayExpensesCategoryBarChart(categoryData) {
  * Show a message to the user in the charts area
  */
 function showMessage(message, showRetry = false) {
-    console.log('Chart message:', message);
-    
     // Find a suitable container to display the message
     const chartsContainer = document.querySelector('.charts-container');
     if (chartsContainer) {
@@ -765,8 +665,6 @@ function showMessage(message, showRetry = false) {
  * Retry loading charts - exposed globally for button click
  */
 function retryLoadCharts() {
-    console.log('Retrying chart load...');
-    
     // Reset flags
     chartsInitialized = false;
     isLoadingCharts = false;
@@ -781,10 +679,8 @@ function retryLoadCharts() {
  */
 function updateCharts() {
     if (typeof loadAndDisplayCharts === 'function' && chartsInitialized) {
-        console.log('🔄 Updating charts after data change');
         loadAndDisplayCharts(true); // Force refresh since data changed
     } else if (typeof loadAndDisplayCharts === 'function') {
-        console.log('📊 Initializing charts with fresh data');
         loadAndDisplayCharts(true); // Force refresh for initial load after data change
     }
 }
@@ -797,13 +693,7 @@ window.retryLoadCharts = retryLoadCharts;
  */
 function debugTodaysDate() {
     const today = new Date();
-    console.log('=== TODAY DATE DEBUG ===');
-    console.log('JavaScript Date object:', today);
-    console.log('toDateString():', today.toDateString());
-    console.log('toISOString():', today.toISOString());
-    console.log('Formatted (YYYY-MM-DD):', formatDate(today));
-    console.log('Expected transaction date should be:', formatDate(today));
-    console.log('========================');
+    // Date debugging removed
 }
 
 // Make debug function available globally

@@ -26,7 +26,6 @@ function navigateTo(page) {
         }, 100);
     } else if (page === 'charts') {
         document.getElementById('chartsPage').classList.add('active');
-        console.log('Navigating to charts page - forcing fresh data load...');
         // Reset chart state for fresh rendering but allow cache usage
         chartsInitialized = false;
         isLoadingCharts = false;

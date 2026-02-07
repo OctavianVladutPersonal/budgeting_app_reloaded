@@ -1612,6 +1612,7 @@ button:active {
     transition: filter 0.3s ease;
 }
 
+.success-modal,
 #successModal {
     position: fixed;
     top: 0;
@@ -1622,21 +1623,19 @@ button:active {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
+    z-index: 9999;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
     pointer-events: none;
 }
 
-#successModal {
-    z-index: 3000;
-}
-
+.success-modal.show,
 #successModal.show {
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    display: flex !important;
 }
 
 .success-modal-content {

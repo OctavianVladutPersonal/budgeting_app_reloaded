@@ -67,8 +67,6 @@ function handleRegularTransactionSubmit() {
         notes: document.getElementById('notes').value
     };
 
-    console.log('Sending add payload:', payload);
-
     fetch(window.CONFIG.scriptURL, {
         method: 'POST',
         mode: 'no-cors',
@@ -158,9 +156,6 @@ async function handleRecurringTransactionSubmit() {
                     await fetch(window.CONFIG.scriptURL, {
                         method: 'POST',
                         mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
                         body: JSON.stringify(immediatePayload)
                     });
                     
@@ -235,16 +230,45 @@ function showSuccessCheckmark(message = 'Success! Transaction added!') {
     const modal = document.getElementById('successModal');
     const messageElement = document.getElementById('successMessage');
     
+    if (!modal) {
+        console.error('❌ Success modal not found!');
+        return;
+    }
+    
     // Set custom message
     if (messageElement) {
         messageElement.textContent = message;
+    } else {
+        console.error('❌ Success message element not found!');
     }
     
-    modal.classList.add('show');
+    // Remove any existing classes and styles to start fresh
+    modal.className = 'success-modal show';
+    
+    // Force maximum visibility with aggressive inline styles
+    modal.style.cssText = `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background-color: rgba(0, 0, 0, 0.8) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        z-index: 999999 !important;
+        pointer-events: auto !important;
+        transform: none !important;
+    `;
     
     // Hide modal after 1.5 seconds
     setTimeout(() => {
-        modal.classList.remove('show');
+        modal.style.cssText = '';
+        modal.className = 'success-modal';
     }, 1500);
 }
 

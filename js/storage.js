@@ -32,13 +32,11 @@ class DataCache {
     static getCachedTransactions() {
         try {
             if (!this.isCacheValid(this.TRANSACTIONS_KEY)) {
-                console.log('💾 Transaction cache expired or invalid');
                 return null;
             }
             
             const cached = localStorage.getItem(this.TRANSACTIONS_KEY);
             if (cached) {
-                console.log('💾 Using cached transactions data');
                 return JSON.parse(cached);
             }
             return null;
@@ -55,7 +53,6 @@ class DataCache {
         try {
             localStorage.setItem(this.TRANSACTIONS_KEY, JSON.stringify(data));
             localStorage.setItem(`${this.TRANSACTIONS_KEY}_timestamp`, Date.now().toString());
-            console.log('💾 Transactions data cached successfully');
         } catch (error) {
             console.error('Error caching transactions:', error);
         }
@@ -67,13 +64,11 @@ class DataCache {
     static getCachedRecurringTransactions() {
         try {
             if (!this.isCacheValid(this.RECURRING_KEY)) {
-                console.log('💾 Recurring transaction cache expired or invalid');
                 return null;
             }
             
             const cached = localStorage.getItem(this.RECURRING_KEY);
             if (cached) {
-                console.log('💾 Using cached recurring transactions data');
                 return JSON.parse(cached);
             }
             return null;
@@ -90,7 +85,6 @@ class DataCache {
         try {
             localStorage.setItem(this.RECURRING_KEY, JSON.stringify(data));
             localStorage.setItem(`${this.RECURRING_KEY}_timestamp`, Date.now().toString());
-            console.log('💾 Recurring transactions data cached successfully');
         } catch (error) {
             console.error('Error caching recurring transactions:', error);
         }
@@ -103,7 +97,6 @@ class DataCache {
         try {
             localStorage.removeItem(this.TRANSACTIONS_KEY);
             localStorage.removeItem(`${this.TRANSACTIONS_KEY}_timestamp`);
-            console.log('💾 Transaction cache cleared');
         } catch (error) {
             console.error('Error clearing transaction cache:', error);
         }
@@ -115,13 +108,11 @@ class DataCache {
     static getCachedChartTransactions() {
         try {
             if (!this.isCacheValid(this.CHARTS_KEY)) {
-                console.log('💾 Chart transaction cache expired or invalid');
                 return null;
             }
             
             const cached = localStorage.getItem(this.CHARTS_KEY);
             if (cached) {
-                console.log('💾 Using cached chart transactions data');
                 return JSON.parse(cached);
             }
             return null;
@@ -138,7 +129,6 @@ class DataCache {
         try {
             localStorage.setItem(this.CHARTS_KEY, JSON.stringify(data));
             localStorage.setItem(`${this.CHARTS_KEY}_timestamp`, Date.now().toString());
-            console.log('💾 Chart transactions data cached successfully');
         } catch (error) {
             console.error('Error caching chart transactions:', error);
         }
@@ -151,7 +141,6 @@ class DataCache {
         try {
             localStorage.removeItem(this.CHARTS_KEY);
             localStorage.removeItem(`${this.CHARTS_KEY}_timestamp`);
-            console.log('💾 Chart transaction cache cleared');
         } catch (error) {
             console.error('Error clearing chart transaction cache:', error);
         }
@@ -164,7 +153,6 @@ class DataCache {
         try {
             localStorage.removeItem(this.RECURRING_KEY);
             localStorage.removeItem(`${this.RECURRING_KEY}_timestamp`);
-            console.log('💾 Recurring transaction cache cleared');
         } catch (error) {
             console.error('Error clearing recurring transaction cache:', error);
         }
@@ -228,9 +216,7 @@ class UserConfig {
      */
     static saveConfig(config) {
         try {
-            console.log('UserConfig.saveConfig() - saving config:', config);
             localStorage.setItem(this.CONFIG_KEY, JSON.stringify(config));
-            console.log('UserConfig.saveConfig() - config saved successfully');
             return true;
         } catch (error) {
             console.error('Error saving user config:', error);
@@ -243,8 +229,6 @@ class UserConfig {
      */
     static isOnboardingComplete() {
         const value = localStorage.getItem(this.ONBOARDING_KEY);
-        console.log('UserConfig.isOnboardingComplete() - localStorage value:', value);
-        console.log('UserConfig.isOnboardingComplete() - returning:', value === 'true');
         return value === 'true';
     }
     
@@ -252,12 +236,10 @@ class UserConfig {
      * Mark onboarding as complete
      */
     static setOnboardingComplete() {
-        console.log('UserConfig.setOnboardingComplete() - setting localStorage key:', this.ONBOARDING_KEY, 'to: true');
         localStorage.setItem(this.ONBOARDING_KEY, 'true');
         
         // Verify it was set
         const verification = localStorage.getItem(this.ONBOARDING_KEY);
-        console.log('UserConfig.setOnboardingComplete() - verification, value is now:', verification);
     }
     
     /**

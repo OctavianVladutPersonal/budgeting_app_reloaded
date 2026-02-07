@@ -15,7 +15,7 @@ async function loadPayeeHistory() {
             return;
         }
     } catch (error) {
-        console.log('Could not fetch from sheet, using local data:', error);
+        // Could not fetch from sheet, using local data
     }
     
     // Fallback to local storage if sheet fetch fails

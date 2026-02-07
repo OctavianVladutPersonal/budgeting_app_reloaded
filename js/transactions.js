@@ -28,7 +28,6 @@ async function loadRecentTransactions(forceRefresh = false) {
                 displayRecentTransactions(transactions);
                 return Promise.resolve();
             } else {
-                console.log('No transactions found in cached data:', cachedData);
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No transactions yet</td></tr>';
                 return Promise.resolve();
             }
@@ -39,9 +38,7 @@ async function loadRecentTransactions(forceRefresh = false) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;"><div class="loading-spinner"></div><span style="margin-left: 10px;">Loading transactions...</span></td></tr>';
     
     try {
-        console.log('🔄 Fetching fresh data from:', window.CONFIG.scriptURL + '?action=getTransactions');
         const data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getTransactions');
-        console.log('Received data:', data);
         
         // Cache the received data
         if (window.DataCache && data) {
@@ -69,7 +66,6 @@ async function loadRecentTransactions(forceRefresh = false) {
             displayRecentTransactions(transactions);
             return Promise.resolve();
         } else {
-            console.log('No transactions found in data:', data);
             tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No transactions yet</td></tr>';
             return Promise.resolve();
         }
@@ -96,19 +92,12 @@ function displayRecentTransactions(transactions) {
         return;
     }
     
-    // Store transactions globally for editing and add rowIndex
-    // recentTransactions are the last 5 transactions in reverse order
-    const startIndexInFullArray = Math.max(0, transactions.length - recentTransactions.length);
-    
-    window.currentTransactions = recentTransactions.map((transaction, index) => {
-        // Calculate rowIndex based on position in full dataset
-        // Since recentTransactions is reversed, we need to calculate the correct original position
-        const originalIndex = startIndexInFullArray + (recentTransactions.length - 1 - index);
-        
+    // Store transactions globally for editing - rely on backend-provided rowIndex
+    window.currentTransactions = recentTransactions.map((transaction, index) => {        
         return {
             ...transaction,
-            // rowIndex is 1-based for spreadsheet operations (transaction 0 in array = row 1 for backend)
-            rowIndex: originalIndex + 1
+            // Use backend-provided identifier if available, otherwise mark as invalid
+            rowIndex: transaction.rowIndex || transaction.row || null
         };
     });
     
@@ -200,16 +189,28 @@ function setupRefreshButton() {
  * Open edit modal with transaction data
  */
 function openEditModal(transactionIndex) {
-    console.log('Opening edit modal for transaction index:', transactionIndex);
-    console.log('Available transactions:', window.currentTransactions);
-    
     const transaction = window.currentTransactions[transactionIndex];
     if (!transaction) {
         console.error('Transaction not found at index:', transactionIndex);
+        
+        // Try refreshing data first in case it's stale
+        loadRecentTransactions(true).then(() => {
+            const refreshedTransaction = window.currentTransactions[transactionIndex];
+            if (refreshedTransaction) {
+                setTimeout(() => openEditModal(transactionIndex), 100);
+            } else {
+                alert('Transaction not found. Please refresh the page and try again.');
+            }
+        });
         return;
     }
     
-    console.log('Editing transaction:', transaction);
+    // Additional validation for rowIndex
+    if (!transaction.rowIndex || isNaN(transaction.rowIndex) || transaction.rowIndex <= 0) {
+        console.error('Invalid or missing rowIndex for transaction:', transaction);
+        alert('Error: This transaction cannot be edited because it lacks proper identification. This may indicate a backend issue. Please refresh the page and contact support if the problem persists.');
+        return;
+    }
     
     // Store the row index for reference
     document.getElementById('editRowIndex').value = transaction.rowIndex || '';
@@ -288,9 +289,9 @@ function handleEditFormSubmit(e) {
     const rowIndex = document.getElementById('editRowIndex').value;
     
     // Validate that we have a row index
-    if (!rowIndex) {
-        console.error('No row index found - cannot update transaction');
-        alert('Error: Unable to identify transaction to update. Please try again.');
+    if (!rowIndex || isNaN(rowIndex) || parseInt(rowIndex) <= 0) {
+        console.error('Invalid row index found - cannot update transaction. RowIndex:', rowIndex);
+        alert('Error: Cannot identify transaction to update. This may indicate a backend issue. Please refresh the page and try again.');
         saveBtn.disabled = false;
         saveBtn.innerText = "Save Changes";
         return;
@@ -309,18 +310,12 @@ function handleEditFormSubmit(e) {
         notes: document.getElementById('editNotes').value
     };
     
-    console.log('Sending update payload:', payload);
-    
     fetch(window.CONFIG.scriptURL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         mode: 'no-cors',
         body: JSON.stringify(payload)
     })
     .then(response => {
-        console.log('Update response received');
         
         // Clear cache since data has changed
         if (window.DataCache) {
@@ -371,16 +366,18 @@ function setupEditModalListeners() {
  * Open delete confirmation modal
  */
 function openDeleteModal(transactionIndex) {
-    console.log('Opening delete modal for transaction index:', transactionIndex);
-    console.log('Available transactions:', window.currentTransactions);
-    
     const transaction = window.currentTransactions[transactionIndex];
     if (!transaction) {
         console.error('Transaction not found at index:', transactionIndex);
         return;
     }
     
-    console.log('Deleting transaction:', transaction);
+    // Validate rowIndex before allowing delete
+    if (!transaction.rowIndex || isNaN(transaction.rowIndex) || transaction.rowIndex <= 0) {
+        console.error('Invalid rowIndex for deletion:', transaction);
+        alert('Error: This transaction cannot be deleted because it lacks proper identification. This may indicate a backend issue. Please refresh the page and contact support if the problem persists.');
+        return;
+    }
     
     // Store transaction data for deletion
     window.deleteTransactionData = {
@@ -438,9 +435,9 @@ function handleDelete() {
     }
     
     // Validate that we have a row index
-    if (!window.deleteTransactionData.rowIndex) {
-        console.error('No row index found - cannot delete transaction');
-        alert('Error: Unable to identify transaction to delete. Please try again.');
+    if (!window.deleteTransactionData.rowIndex || isNaN(window.deleteTransactionData.rowIndex) || parseInt(window.deleteTransactionData.rowIndex) <= 0) {
+        console.error('Invalid row index found - cannot delete transaction. RowIndex:', window.deleteTransactionData.rowIndex);
+        alert('Error: Cannot identify transaction to delete. This may indicate a backend issue. Please refresh the page and try again.');
         return;
     }
     
@@ -453,18 +450,12 @@ function handleDelete() {
         rowIndex: parseInt(window.deleteTransactionData.rowIndex)
     };
     
-    console.log('Sending delete payload:', payload);
-    
     fetch(window.CONFIG.scriptURL, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         mode: 'no-cors',
         body: JSON.stringify(payload)
     })
     .then(response => {
-        console.log('Delete response received');
         
         // Clear cache since data has changed
         if (window.DataCache) {

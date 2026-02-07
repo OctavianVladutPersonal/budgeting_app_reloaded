@@ -17,9 +17,7 @@ class RecurringTransactions {
                 }
             }
             
-            console.log('🔄 Fetching fresh recurring transactions from:', window.CONFIG.scriptURL + '?action=getRecurringTransactions');
             const data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getRecurringTransactions');
-            console.log('Received recurring data:', data);
             
             // Cache the received data
             if (window.DataCache && data) {
@@ -29,9 +27,6 @@ class RecurringTransactions {
             if (data && data.recurringTransactions && Array.isArray(data.recurringTransactions)) {
                 return data.recurringTransactions;
             }
-            
-            console.log('No recurring transactions found in data:', data);
-            return [];
         } catch (error) {
             console.error('Error loading recurring transactions:', error);
             return [];
@@ -56,14 +51,9 @@ class RecurringTransactions {
                 endDate: transaction.endDate || ''
             };
             
-            console.log('Adding recurring transaction:', payload);
-            
             const response = await fetch(window.CONFIG.scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(payload)
             });
             
@@ -95,14 +85,9 @@ class RecurringTransactions {
                 nextDue: updates.nextDue
             };
             
-            console.log('Updating recurring transaction:', payload);
-            
             const response = await fetch(window.CONFIG.scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(payload)
             });
             
@@ -123,14 +108,9 @@ class RecurringTransactions {
                 recurringId: id
             };
             
-            console.log('Deleting recurring transaction:', payload);
-            
             const response = await fetch(window.CONFIG.scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(payload)
             });
             
@@ -428,32 +408,52 @@ class RecurringUI {
     static async handleEditRecurring(event) {
         event.preventDefault();
         
-        const id = document.getElementById('editRecurringId').value;
-        const updates = {
-            amount: parseFloat(document.getElementById('editRecurringAmount').value),
-            payee: document.getElementById('editRecurringPayee').value,
-            category: document.getElementById('editRecurringCategory').value,
-            notes: document.getElementById('editRecurringNotes').value,
-            account: document.getElementById('editRecurringAccount').value,
-            type: document.getElementById('editRecurringType').value,
-            frequency: document.getElementById('editRecurringFrequency').value,
-            startDate: document.getElementById('editRecurringStartDate').value,
-            endDate: document.getElementById('editRecurringEndDate').value || null,
-            nextDue: document.getElementById('editRecurringNextDue').value
-        };
+        const saveBtn = document.getElementById('saveEditRecurringBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Saving...";
         
-        const result = await RecurringTransactions.update(id, updates);
-        
-        if (result) {
-            showSuccessCheckmark('Recurring transaction updated successfully!');
-            closeEditRecurringModal();
+        try {
+            const id = document.getElementById('editRecurringId').value;
+            const updates = {
+                amount: parseFloat(document.getElementById('editRecurringAmount').value),
+                payee: document.getElementById('editRecurringPayee').value,
+                category: document.getElementById('editRecurringCategory').value,
+                notes: document.getElementById('editRecurringNotes').value,
+                account: document.getElementById('editRecurringAccount').value,
+                type: document.getElementById('editRecurringType').value,
+                frequency: document.getElementById('editRecurringFrequency').value,
+                startDate: document.getElementById('editRecurringStartDate').value,
+                endDate: document.getElementById('editRecurringEndDate').value || null,
+                nextDue: document.getElementById('editRecurringNextDue').value
+            };
             
-            // Update local data and re-render table
-            RecurringUI.updateLocalTransaction(id, updates);
-            RecurringUI.renderRecurringTable();
-            RecurringUI.updateStatsFromLocalData();
-        } else {
-            alert('Error updating recurring transaction. Please try again.');
+            const result = await RecurringTransactions.update(id, updates);
+            
+            // Clear cache since recurring data has changed
+            if (window.DataCache) {
+                DataCache.clearRecurringCache();
+                DataCache.clearChartCache();
+            }
+            
+            // Close modal first to avoid any conflicts
+            closeEditRecurringModal();
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Changes";
+            
+            // Then show success message
+            showSuccessCheckmark('Recurring transaction updated successfully!');
+            
+            // Refresh data after modal closes
+            setTimeout(() => {
+                RecurringUI.loadRecurringStats();
+                RecurringUI.loadRecurringList();
+            }, 1600); // Slightly after success modal disappears
+            
+        } catch (error) {
+            console.error('Error updating recurring transaction:', error);
+            showErrorMessage('Error updating recurring transaction. Please check your connection and try again.');
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Changes";
         }
     }
     
@@ -812,6 +812,8 @@ class RecurringProcessor {
                 const success = await this.processRecurringTransaction(recurringTransaction);
                 if (success) {
                     successCount++;
+                    // Small delay to ensure transaction is properly added to spreadsheet
+                    await new Promise(resolve => setTimeout(resolve, 500));
                     await RecurringTransactions.markAsProcessed(recurringTransaction.id);
                 } else {
                     errors.push(`Failed to process: ${recurringTransaction.payee}`);
@@ -847,9 +849,17 @@ class RecurringProcessor {
             DataCache.clearChartCache();
         }
         
-        // Refresh main transactions if on home page
+        // Refresh main transactions if on home page  
         if (typeof loadRecentTransactions === 'function') {
-            loadRecentTransactions(true); // Force refresh after processing
+            // Add a small delay to ensure spreadsheet has processed all changes
+            // and then force a full refresh to get accurate rowIndex values
+            setTimeout(() => {
+                // Clear cache to ensure we get completely fresh data
+                if (window.DataCache) {
+                    DataCache.clearAllCache();
+                }
+                loadRecentTransactions(true); // Force refresh after processing
+            }, 1500); // Wait 1.5 seconds for data to be properly synced
         }
     }
     
@@ -872,15 +882,10 @@ class RecurringProcessor {
             notes: `${recurringTransaction.notes ? recurringTransaction.notes + ' - ' : ''}Recurring ${RecurringTransactions.getFrequencyText(recurringTransaction.frequency).toLowerCase()}`
         };
         
-        console.log('Processing recurring transaction:', payload);
-        
         try {
             const response = await fetch(window.CONFIG.scriptURL, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
                 body: JSON.stringify(payload)
             });
             
@@ -897,6 +902,21 @@ class RecurringProcessor {
  * Global functions for UI interactions
  */
 function openAddRecurringModal() {
+    // Ensure account dropdown is populated before opening modal
+    const accountSelect = document.getElementById('recurringModalAccount');
+    if (accountSelect && window.userConfig && window.userConfig.accounts) {
+        // Only repopulate if the dropdown appears empty or has hardcoded values
+        if (accountSelect.children.length <= 2 || accountSelect.querySelector('option[value="Ale"]')) {
+            accountSelect.innerHTML = '';
+            window.userConfig.accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account;
+                option.textContent = account;
+                accountSelect.appendChild(option);
+            });
+        }
+    }
+    
     const modal = document.getElementById('addRecurringModal');
     modal.classList.add('show');
 }
@@ -913,6 +933,21 @@ function openEditRecurringModal(id) {
     if (!transaction) {
         console.error('Recurring transaction not found in loaded data:', id);
         return;
+    }
+    
+    // Ensure account dropdown is populated before setting values
+    const accountSelect = document.getElementById('editRecurringAccount');
+    if (accountSelect && window.userConfig && window.userConfig.accounts) {
+        // Only repopulate if the dropdown appears empty or has hardcoded values
+        if (accountSelect.children.length <= 2 || accountSelect.querySelector('option[value="Ale"]')) {
+            accountSelect.innerHTML = '';
+            window.userConfig.accounts.forEach(account => {
+                const option = document.createElement('option');
+                option.value = account;
+                option.textContent = account;
+                accountSelect.appendChild(option);
+            });
+        }
     }
     
     // Populate form fields
@@ -934,6 +969,12 @@ function openEditRecurringModal(id) {
     // Show modal
     const modal = document.getElementById('editRecurringModal');
     modal.classList.add('show');
+}
+
+function closeEditRecurringModal() {
+    const modal = document.getElementById('editRecurringModal');
+    modal.classList.remove('show');
+    document.getElementById('editRecurringForm').reset();
 }
 
 function closeDeleteRecurringModal() {
@@ -1008,6 +1049,47 @@ async function handleDeleteRecurring() {
 
 function processRecurringTransactions() {
     RecurringProcessor.processAllDue();
+}
+
+/**
+ * Show error message using the success modal but with error styling
+ */
+function showErrorMessage(message = 'An error occurred. Please try again.') {
+    const modal = document.getElementById('successModal');
+    const messageElement = document.getElementById('successMessage');
+    const svg = modal.querySelector('svg');
+    
+    if (messageElement) {
+        messageElement.textContent = message;
+        messageElement.style.color = '#dc3545';
+    }
+    
+    // Change checkmark to error icon
+    if (svg) {
+        svg.innerHTML = `
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#dc3545" stroke-width="4"/>
+            <line x1="35" y1="35" x2="65" y2="65" stroke="#dc3545" stroke-width="4" stroke-linecap="round"/>
+            <line x1="65" y1="35" x2="35" y2="65" stroke="#dc3545" stroke-width="4" stroke-linecap="round"/>
+        `;
+    }
+    
+    modal.classList.add('show');
+    
+    // Hide modal after 2.5 seconds (longer for error messages)
+    setTimeout(() => {
+        modal.classList.remove('show');
+        
+        // Reset styles back to success
+        if (messageElement) {
+            messageElement.style.color = '';
+        }
+        if (svg) {
+            svg.innerHTML = `
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#28a745" stroke-width="4"/>
+                <path d="M 30 50 L 45 65 L 70 35" fill="none" stroke="#28a745" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+            `;
+        }
+    }, 2500);
 }
 
 // Auto-initialize when DOM is loaded
