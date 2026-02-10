@@ -6,6 +6,10 @@
 async function loadRecentTransactions(forceRefresh = false) {
     const tbody = document.getElementById('transactionsBody');
     
+    // Get translated messages
+    const loadingMsg = window.I18n ? I18n.t('transactions.loading', 'Loading transactions...') : 'Loading transactions...';
+    const emptyMsg = window.I18n ? I18n.t('transactions.empty', 'No transactions found.') : 'No transactions found.';
+    
     // Check cache first unless force refresh is requested
     if (!forceRefresh && window.DataCache) {
         const cachedData = DataCache.getCachedTransactions();
@@ -28,14 +32,14 @@ async function loadRecentTransactions(forceRefresh = false) {
                 displayRecentTransactions(transactions);
                 return Promise.resolve();
             } else {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No transactions yet</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #999;">${emptyMsg}</td></tr>`;
                 return Promise.resolve();
             }
         }
     }
     
     // Show loading state
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;">Loading transactions...</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #666;">${loadingMsg}</td></tr>`;
     
     try {
         const data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getTransactions');
@@ -66,7 +70,7 @@ async function loadRecentTransactions(forceRefresh = false) {
             displayRecentTransactions(transactions);
             return Promise.resolve();
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No transactions yet</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #999;">${emptyMsg}</td></tr>`;
             return Promise.resolve();
         }
     } catch (error) {
@@ -74,7 +78,7 @@ async function loadRecentTransactions(forceRefresh = false) {
     }
     
     // Show fallback message if fetch fails
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">Unable to load transactions</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #999;">${emptyMsg}</td></tr>`;
     return Promise.resolve();
 }
 
@@ -83,12 +87,13 @@ async function loadRecentTransactions(forceRefresh = false) {
  */
 function displayRecentTransactions(transactions) {
     const tbody = document.getElementById('transactionsBody');
+    const emptyMsg = window.I18n ? I18n.t('transactions.empty', 'No transactions found.') : 'No transactions found.';
     
     // Get last 5 transactions (assuming they come in order, reverse if needed)
     const recentTransactions = transactions.slice(-5).reverse();
     
     if (recentTransactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #999;">No transactions yet</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #999;">${emptyMsg}</td></tr>`;
         return;
     }
     
@@ -124,15 +129,19 @@ function displayRecentTransactions(transactions) {
         const type = transaction.Type || transaction.type || 'Expense';
         const account = transaction.Account || transaction.account || '-';
         
+        // Translate category and type if I18n is available
+        const translatedCategory = window.I18n ? I18n.translateCategory(category) : category;
+        const translatedType = window.I18n ? I18n.translateType(type) : type;
+        
         return `
         <tr>
             <td>${formattedDate}</td>
             <td class="sensitive-data">${payee}</td>
-            <td>${category}</td>
+            <td>${translatedCategory}</td>
             <td class="amount sensitive-data ${type === 'Income' ? 'income' : 'expense'}">
                 ${type === 'Income' ? '+' : '-'}${parseFloat(amount).toFixed(2)}
             </td>
-            <td>${type}</td>
+            <td>${translatedType}</td>
             <td class="sensitive-data">${account}</td>
             <td class="action-buttons">
                 <button type="button" class="edit-btn" onclick="openEditModal(${index})" title="Edit transaction">✏️</button>
@@ -199,7 +208,7 @@ function openEditModal(transactionIndex) {
             if (refreshedTransaction) {
                 setTimeout(() => openEditModal(transactionIndex), 100);
             } else {
-                alert('Transaction not found. Please refresh the page and try again.');
+                alert(I18n.t('error.transactionNotFound'));
             }
         });
         return;
@@ -208,7 +217,7 @@ function openEditModal(transactionIndex) {
     // Additional validation for rowIndex
     if (!transaction.rowIndex || isNaN(transaction.rowIndex) || transaction.rowIndex <= 0) {
         console.error('Invalid or missing rowIndex for transaction:', transaction);
-        alert('Error: This transaction cannot be edited because it lacks proper identification. This may indicate a backend issue. Please refresh the page and contact support if the problem persists.');
+        alert(I18n.t('error.transactionNoId'));
         return;
     }
     
@@ -293,7 +302,7 @@ function handleEditFormSubmit(e) {
     // Validate that we have a row index
     if (!rowIndex || isNaN(rowIndex) || parseInt(rowIndex) <= 0) {
         console.error('Invalid row index found - cannot update transaction. RowIndex:', rowIndex);
-        alert('Error: Cannot identify transaction to update. This may indicate a backend issue. Please refresh the page and try again.');
+        alert(I18n.t('error.transactionIdentifyFailed'));
         saveBtn.disabled = false;
         saveBtn.innerText = "Save Changes";
         return;
@@ -326,7 +335,7 @@ function handleEditFormSubmit(e) {
         }
         
         // Show success modal
-        showSuccessCheckmark('Success! Transaction updated!');
+        showSuccessCheckmark(I18n.t('success.transactionUpdated'));
         
         setTimeout(() => {
             closeEditModal();
@@ -341,7 +350,7 @@ function handleEditFormSubmit(e) {
     })
     .catch(error => {
         console.error('Error updating transaction:', error);
-        alert('Error updating transaction. Please try again.');
+        alert(I18n.t('error.transactionUpdateFailed'));
         saveBtn.disabled = false;
         saveBtn.innerText = "Save Changes";
     });
@@ -377,7 +386,7 @@ function openDeleteModal(transactionIndex) {
     // Validate rowIndex before allowing delete
     if (!transaction.rowIndex || isNaN(transaction.rowIndex) || transaction.rowIndex <= 0) {
         console.error('Invalid rowIndex for deletion:', transaction);
-        alert('Error: This transaction cannot be deleted because it lacks proper identification. This may indicate a backend issue. Please refresh the page and contact support if the problem persists.');
+        alert(I18n.t('error.transactionDeleteNoId'));
         return;
     }
     
@@ -439,7 +448,7 @@ function handleDelete() {
     // Validate that we have a row index
     if (!window.deleteTransactionData.rowIndex || isNaN(window.deleteTransactionData.rowIndex) || parseInt(window.deleteTransactionData.rowIndex) <= 0) {
         console.error('Invalid row index found - cannot delete transaction. RowIndex:', window.deleteTransactionData.rowIndex);
-        alert('Error: Cannot identify transaction to delete. This may indicate a backend issue. Please refresh the page and try again.');
+        alert(I18n.t('error.transactionDeleteIdentifyFailed'));
         return;
     }
     
@@ -466,7 +475,7 @@ function handleDelete() {
         }
         
         // Show success modal
-        showSuccessCheckmark('Transaction deleted successfully!');
+        showSuccessCheckmark(I18n.t('success.transactionDeleted'));
         
         setTimeout(() => {
             closeDeleteModal();
@@ -481,7 +490,7 @@ function handleDelete() {
     })
     .catch(error => {
         console.error('Error deleting transaction:', error);
-        alert('Error deleting transaction. Please try again.');
+        alert(I18n.t('error.transactionDeleteFailed'));
         deleteBtn.disabled = false;
         deleteBtn.innerText = "Delete";
     });

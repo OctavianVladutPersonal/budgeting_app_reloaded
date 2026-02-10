@@ -101,7 +101,7 @@ async function handleRecurringTransactionSubmit() {
     const startDate = document.getElementById('recurringStartDate').value;
     
     if (!frequency || !startDate) {
-        alert('Please fill in all required recurring transaction fields.');
+        alert(I18n.t('error.recurringFieldsRequired'));
         resetFormButton();
         return;
     }
@@ -184,12 +184,12 @@ async function handleRecurringTransactionSubmit() {
                 }
             }, 2500);
         } else {
-            alert('Error creating recurring transaction. Please try again.');
+            alert(I18n.t('error.recurringCreateFailed'));
             resetFormButton();
         }
     } catch (error) {
         console.error('Error creating recurring transaction:', error);
-        alert('Error creating recurring transaction. Please try again.');
+        alert(I18n.t('error.recurringCreateFailed'));
         resetFormButton();
     }
 }
@@ -233,13 +233,20 @@ function resetFormButton() {
 /**
  * Show success checkmark modal
  */
-function showSuccessCheckmark(message = 'Success! Transaction added!') {
+function showSuccessCheckmark(message = null) {
     const modal = document.getElementById('successModal');
     const messageElement = document.getElementById('successMessage');
     
     if (!modal) {
         console.error('❌ Success modal not found!');
         return;
+    }
+    
+    // Use translated message if no custom message provided
+    if (!message && window.I18n) {
+        message = I18n.t('success.message', 'Success! Transaction added!');
+    } else if (!message) {
+        message = 'Success! Transaction added!';
     }
     
     // Set custom message

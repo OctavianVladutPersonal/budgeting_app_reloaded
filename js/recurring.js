@@ -273,6 +273,11 @@ class RecurringTransactions {
      * Get frequency display text
      */
     static getFrequencyText(frequency) {
+        // Use I18n if available, otherwise fall back to English
+        if (window.I18n) {
+            return I18n.translateFrequency(frequency);
+        }
+        
         const frequencies = {
             'daily': 'Daily',
             'weekly': 'Weekly',
@@ -496,7 +501,7 @@ class RecurringUI {
         const descElement = document.getElementById('recurringDescription');
         
         if (!frequency || !startDate) {
-            descElement.textContent = 'Please select frequency and start date.';
+            descElement.textContent = I18n.t('recurring.selectFrequencyDate');
             return;
         }
         
@@ -628,7 +633,7 @@ class RecurringUI {
             saveBtn.textContent = "Save Changes";
             
             // Then show success message
-            showSuccessCheckmark('Recurring transaction updated successfully!');
+            showSuccessCheckmark(I18n.t('success.recurringUpdated'));
             
             // Refresh data after modal closes
             setTimeout(() => {
@@ -653,14 +658,17 @@ class RecurringUI {
         
         if (!tbody) return;
         
+        const loadingMsg = window.I18n ? I18n.t('transactions.loading', 'Loading recurring transactions...') : 'Loading recurring transactions...';
+        const emptyMsg = window.I18n ? I18n.t('recurring.empty', 'No recurring transactions set up yet.') : 'No recurring transactions set up yet.';
+        
         // Show loading state
-        tbody.innerHTML = '<tr><td colspan=\"8\" style=\"text-align: center; color: #999;\">Loading recurring transactions...</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #999;">${loadingMsg}</td></tr>`;
         
         try {
             const transactions = await RecurringTransactions.getAll(forceRefresh);
             
             if (transactions.length === 0) {
-                tbody.innerHTML = '<tr><td colspan=\"8\" style=\"text-align: center; color: #999;\">No recurring transactions set up yet.<br><small>Create one by adding a transaction and checking \"Make this a recurring transaction\"</small></td></tr>';
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #999;">${emptyMsg}<br><small>Create one by adding a transaction and checking "Make this a recurring transaction"</small></td></tr>`;
                 return;
             }
             
@@ -672,22 +680,27 @@ class RecurringUI {
                 const amountClass = transaction.type === 'Income' ? 'income' : 'expense';
                 const sign = transaction.type === 'Income' ? '+' : '-';
                 
+                // Translate category, type, and status
+                const translatedCategory = window.I18n ? I18n.translateCategory(transaction.category) : transaction.category;
+                const translatedType = window.I18n ? I18n.translateType(transaction.type) : transaction.type;
+                const translatedStatus = window.I18n ? I18n.translateStatus(formatted.status.charAt(0).toUpperCase() + formatted.status.slice(1)) : formatted.status;
+                
                 return `
                     <tr>
-                        <td class=\"sensitive-data\">${transaction.payee}</td>
-                        <td>${transaction.category}</td>
-                        <td class=\"amount sensitive-data ${amountClass}\">
+                        <td class="sensitive-data">${transaction.payee}</td>
+                        <td>${translatedCategory}</td>
+                        <td class="amount sensitive-data ${amountClass}">
                             ${sign}${formatted.formattedAmount}
                         </td>
-                        <td>${transaction.type}</td>
+                        <td>${translatedType}</td>
                         <td>${formatted.frequencyText}</td>
                         <td>${formatted.nextDueFormatted}</td>
                         <td>
-                            <span class=\"status-badge status-${formatted.status}\">${formatted.status}</span>
+                            <span class="status-badge status-${formatted.status}">${translatedStatus}</span>
                         </td>
-                        <td class=\"action-buttons\">
-                            <button type=\"button\" class=\"edit-btn\" onclick=\"openEditRecurringModal('${transaction.id}')\" title=\"Edit recurring transaction\">✏️</button>
-                            <button type=\"button\" class=\"delete-btn\" onclick=\"deleteRecurringTransaction('${transaction.id}')\" title=\"Delete recurring transaction\">🗑️</button>
+                        <td class="action-buttons">
+                            <button type="button" class="edit-btn" onclick="openEditRecurringModal('${transaction.id}')" title="Edit recurring transaction">✏️</button>
+                            <button type="button" class="delete-btn" onclick="deleteRecurringTransaction('${transaction.id}')" title="Delete recurring transaction">🗑️</button>
                         </td>
                     </tr>
                 `;
@@ -749,8 +762,10 @@ class RecurringUI {
         const tbody = document.getElementById('recurringTransactionsBody');
         if (!tbody) return;
         
+        const emptyMsg = window.I18n ? I18n.t('recurring.empty', 'No recurring transactions set up yet.') : 'No recurring transactions set up yet.';
+        
         if (transactions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">No recurring transactions set up yet.<br><small>Create one by adding a transaction and checking "Make this a recurring transaction"</small></td></tr>';
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #999;">${emptyMsg}<br><small>Create one by adding a transaction and checking "Make this a recurring transaction"</small></td></tr>`;
             return;
         }
         
@@ -762,18 +777,23 @@ class RecurringUI {
             const amountClass = transaction.type === 'Income' ? 'income' : 'expense';
             const sign = transaction.type === 'Income' ? '+' : '-';
             
+            // Translate category, type, and status
+            const translatedCategory = window.I18n ? I18n.translateCategory(transaction.category) : transaction.category;
+            const translatedType = window.I18n ? I18n.translateType(transaction.type) : transaction.type;
+            const translatedStatus = window.I18n ? I18n.translateStatus(formatted.status.charAt(0).toUpperCase() + formatted.status.slice(1)) : formatted.status;
+            
             return `
                 <tr>
                     <td class="sensitive-data">${transaction.payee}</td>
-                    <td>${transaction.category}</td>
+                    <td>${translatedCategory}</td>
                     <td class="amount sensitive-data ${amountClass}">
                         ${sign}${formatted.formattedAmount}
                     </td>
-                    <td>${transaction.type}</td>
+                    <td>${translatedType}</td>
                     <td>${formatted.frequencyText}</td>
                     <td>${formatted.nextDueFormatted}</td>
                     <td>
-                        <span class="status-badge status-${formatted.status}">${formatted.status}</span>
+                        <span class="status-badge status-${formatted.status}">${translatedStatus}</span>
                     </td>
                     <td class="action-buttons">
                         <button type="button" class="edit-btn" onclick="openEditRecurringModal('${transaction.id}')" title="Edit recurring transaction">✏️</button>
@@ -948,7 +968,7 @@ class RecurringProcessor {
         
         if (dueTransactions.length === 0) {
             if (!silentMode) {
-                showSuccessCheckmark('No recurring transactions are currently due.');
+                showSuccessCheckmark(I18n.t('success.noDueTransactions'));
             }
             return;
         }
@@ -1229,17 +1249,17 @@ async function handleDeleteRecurring() {
                 DataCache.clearChartCache();
             }
             
-            showSuccessCheckmark('Recurring transaction deleted successfully!');
+            showSuccessCheckmark(I18n.t('success.recurringDeleted'));
             closeDeleteRecurringModal();
             
             // Refresh data from server to ensure UI is updated
             await RecurringUI.loadRecurringList();
         } else {
-            alert('Error deleting recurring transaction. Please try again.');
+            alert(I18n.t('error.recurringDeleteFailed'));
         }
     } catch (error) {
         console.error('Error deleting recurring transaction:', error);
-        alert('Error deleting recurring transaction. Please try again.');
+        alert(I18n.t('error.recurringDeleteFailed'));
     } finally {
         deleteBtn.disabled = false;
         deleteBtn.textContent = 'Delete';

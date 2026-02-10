@@ -62,26 +62,35 @@ function loadSettingsPage() {
     
     configDisplay.innerHTML = `
         <div class="config-item">
-            <span class="config-label">Spreadsheet ID:</span>
-            <span class="config-value${sensitiveClass}">${userConfig.spreadsheetId || 'Not set'}</span>
+            <span class="config-label" data-i18n="settings.config.spreadsheetId">Spreadsheet ID:</span>
+            <span class="config-value${sensitiveClass}">${userConfig.spreadsheetId || I18n.t('settings.config.notSet')}</span>
         </div>
         <div class="config-item">
-            <span class="config-label">Accounts:</span>
-            <span class="config-value${sensitiveClass}">${userConfig.accounts ? userConfig.accounts.join(', ') : 'None'}</span>
+            <span class="config-label" data-i18n="settings.config.accounts">Accounts:</span>
+            <span class="config-value${sensitiveClass}">${userConfig.accounts ? userConfig.accounts.join(', ') : I18n.t('settings.config.none')}</span>
         </div>
         <div class="config-item">
-            <span class="config-label">Categories:</span>
-            <span class="config-value">${userConfig.categories ? userConfig.categories.expense.length + ' expense categories' : 'None'}</span>
+            <span class="config-label" data-i18n="settings.config.categories">Categories:</span>
+            <span class="config-value">${userConfig.categories ? userConfig.categories.expense.length + ' ' + I18n.t('settings.config.expenseCategories') : I18n.t('settings.config.none')}</span>
         </div>
         <div class="config-item">
-            <span class="config-label">User Name:</span>
-            <span class="config-value${sensitiveClass}">${userConfig.userInfo?.name || 'Not set'}</span>
+            <span class="config-label" data-i18n="settings.config.userName">User Name:</span>
+            <span class="config-value${sensitiveClass}">${userConfig.userInfo?.name || I18n.t('settings.config.notSet')}</span>
         </div>
         <div class="config-item">
-            <span class="config-label">Currency:</span>
+            <span class="config-label" data-i18n="settings.config.currency">Currency:</span>
             <span class="config-value">${userConfig.userInfo?.currency || 'USD'}</span>
         </div>
     `;
+    
+    // Apply translations to dynamically created labels
+    const configLabels = configDisplay.querySelectorAll('[data-i18n]');
+    configLabels.forEach(label => {
+        const key = label.getAttribute('data-i18n');
+        if (key && I18n) {
+            label.textContent = I18n.t(key);
+        }
+    });
     
     // Handle settings action buttons obfuscation
     const settingsActions = document.querySelector('.settings-actions');
@@ -110,7 +119,7 @@ function viewSpreadsheet() {
     if (userConfig && userConfig.spreadsheetURL) {
         window.open(userConfig.spreadsheetURL, '_blank');
     } else {
-        alert('No spreadsheet URL configured.');
+        alert(I18n.t('error.noSpreadsheetURL'));
     }
 }
 

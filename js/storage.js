@@ -270,7 +270,8 @@ class UserConfig {
             },
             userInfo: {
                 name: '',
-                currency: 'RON'
+                currency: 'RON',
+                language: 'en'
             }
         };
     }

@@ -62,11 +62,19 @@ function fetchJSONP(url) {
  * Update day of week based on date input
  */
 function updateDay() {
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayKeys = [
+        'common.days.sunday',
+        'common.days.monday',
+        'common.days.tuesday',
+        'common.days.wednesday',
+        'common.days.thursday',
+        'common.days.friday',
+        'common.days.saturday'
+    ];
     const dateInput = document.getElementById('date');
     const dayInput = document.getElementById('dayOfWeek');
     const d = new Date(dateInput.value);
-    dayInput.value = days[d.getDay()];
+    dayInput.value = I18n.t(dayKeys[d.getDay()]);
 }
 
 /**

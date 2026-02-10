@@ -71,7 +71,7 @@ async function loadAndDisplayCharts(forceRefresh = false) {
     
     if (missingElements.length > 0) {
         console.error('Missing required elements:', missingElements);
-        alert('Charts cannot be displayed. Some required elements are missing: ' + missingElements.join(', '));
+        alert(I18n.t('error.chartsMissingElements') + missingElements.join(', '));
         return;
     }
     
@@ -254,7 +254,7 @@ function updateChartsWithFilter() {
     const endDate = document.getElementById('chartEndDate').value;
     
     if (!startDate || !endDate) {
-        alert('Please select both start and end dates');
+        alert(I18n.t('error.selectDates'));
         return;
     }
 

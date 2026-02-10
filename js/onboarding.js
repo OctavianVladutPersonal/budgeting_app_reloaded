@@ -15,6 +15,12 @@ class OnboardingManager {
      * Initialize onboarding flow
      */
     init() {
+        // Initialize i18n if available
+        if (window.I18n) {
+            I18n.init();
+            I18n.applyTranslations();
+        }
+        
         // Reset steps to initial state if reconfiguring
         if (this.isReconfiguring) {
             this.resetOnboardingSteps();
@@ -91,14 +97,14 @@ class OnboardingManager {
             const content = step5.querySelector('.onboarding-content');
             if (content) {
                 content.innerHTML = `
-                    <h2>Almost Done! ✨</h2>
-                    <p>Just a few final details to personalize your experience.</p>
+                    <h2 data-i18n="onboarding.step5.title">Almost Done! ✨</h2>
+                    <p data-i18n="onboarding.step5.subtitle">Just a few final details to personalize your experience.</p>
                     
                     <form id="personalInfoForm" class="onboarding-form">
-                        <label>Your Name (optional)</label>
-                        <input type="text" id="onboardingUserName" placeholder="How should we address you?">
+                        <label data-i18n="onboarding.step5.name">Your Name (optional)</label>
+                        <input type="text" id="onboardingUserName" data-i18n-placeholder="onboarding.step5.namePlaceholder" placeholder="How should we address you?">
                         
-                        <label>Currency</label>
+                        <label data-i18n="onboarding.step5.currency">Currency</label>
                         <select id="onboardingCurrency">
                             <option value="RON" selected>RON (lei)</option>
                             <option value="USD">USD ($)</option>
@@ -109,11 +115,16 @@ class OnboardingManager {
                         </select>
                         
                         <div class="onboarding-buttons">
-                            <button type="button" class="btn-secondary" onclick="prevOnboardingStep()">Back</button>
-                            <button type="button" class="btn-primary" onclick="completeOnboarding()">Complete Setup</button>
+                            <button type="button" class="btn-secondary" onclick="prevOnboardingStep()" data-i18n="onboarding.step5.back">Back</button>
+                            <button type="button" class="btn-primary" onclick="completeOnboarding()" data-i18n="onboarding.step5.complete">Complete Setup</button>
                         </div>
                     </form>
                 `;
+                
+                // Re-apply translations after injecting new HTML
+                if (window.I18n) {
+                    I18n.applyTranslations();
+                }
             }
         }
     }
@@ -129,7 +140,8 @@ class OnboardingManager {
         const connectionTest = document.getElementById('connectionTest');
         if (connectionTest) {
             connectionTest.className = 'connection-result';
-            connectionTest.innerHTML = '<span>Click "Test Connection" to verify your setup</span>';
+            const message = window.I18n ? I18n.t('onboarding.step2.testMessage', 'Click "Test Connection" to verify your setup') : 'Click "Test Connection" to verify your setup';
+            connectionTest.innerHTML = `<span>${message}</span>`;
         }
         
         // Disable continue button until connection is tested
@@ -1310,8 +1322,10 @@ function testConnection(callback) {
         const categoriesList = document.getElementById('categoriesList');
         const item = document.createElement('div');
         item.className = 'list-item';
+        // Translate the category name for display
+        const translatedName = I18n.translateCategory ? I18n.translateCategory(categoryName) : categoryName;
         item.innerHTML = `
-            <span>${categoryName}</span>
+            <span>${translatedName}</span>
             <button type="button" class="remove-btn" onclick="removeCategory('${categoryName}')">×</button>
         `;
         categoriesList.appendChild(item);
@@ -1365,8 +1379,8 @@ function testConnection(callback) {
         successDiv.className = 'completion-success';
         successDiv.innerHTML = `
             <div class="success-icon">✅</div>
-            <h3>Setup Complete!</h3>
-            <p>Your budgeting app is now personalized and ready to use.</p>
+            <h3>${I18n.t('onboarding.complete.title')}</h3>
+            <p>${I18n.t('onboarding.complete.message')}</p>
         `;
         
         const content = step5.querySelector('.onboarding-content');
@@ -1408,7 +1422,7 @@ function addAccount() {
     if (!accountName) return;
     
     if (window.onboardingManager && window.onboardingManager.config.accounts.includes(accountName)) {
-        alert('This account already exists.');
+        alert(I18n.t('error.accountExists'));
         return;
     }
     
@@ -1455,7 +1469,7 @@ function addCategory() {
     if (!categoryName) return;
     
     if (window.onboardingManager && window.onboardingManager.config.categories.expense.includes(categoryName)) {
-        alert('This category already exists.');
+        alert(I18n.t('error.categoryExists'));
         return;
     }
     
@@ -1549,12 +1563,12 @@ function testConnection() {
     
     if (!spreadsheetId || !scriptURL) {
         resultDiv.className = 'connection-result error';
-        resultDiv.textContent = 'Please provide both Spreadsheet ID and Script URL';
+        resultDiv.textContent = I18n.t('onboarding.step2.testMissing');
         return;
     }
     
     resultDiv.className = 'connection-result testing';
-    resultDiv.innerHTML = '🔍 Testing connection... Please wait';
+    resultDiv.innerHTML = '🔍 ' + I18n.t('onboarding.step2.testing');
     
     // Test the connection by making a simple GET request
     const testScript = document.createElement('script');
@@ -1566,11 +1580,11 @@ function testConnection() {
         
         if (response && (Array.isArray(response) || response.status !== 'error')) {
             resultDiv.className = 'connection-result success';
-            resultDiv.innerHTML = '✅ Connection successful! Your setup is working correctly.';
+            resultDiv.innerHTML = '✅ ' + I18n.t('onboarding.step2.testSuccess');
             continueBtn.disabled = false;
         } else {
             resultDiv.className = 'connection-result error';
-            resultDiv.innerHTML = '❌ Connection failed. Please check your Apps Script deployment.';
+            resultDiv.innerHTML = '❌ ' + I18n.t('onboarding.step2.testFailed');
             continueBtn.disabled = true;
         }
     };
@@ -1581,7 +1595,7 @@ function testConnection() {
             document.head.removeChild(testScript);
             delete window[callbackName];
             resultDiv.className = 'connection-result error';
-            resultDiv.innerHTML = '❌ Connection timeout. Please verify your Apps Script is deployed correctly.';
+            resultDiv.innerHTML = '❌ ' + I18n.t('onboarding.step2.testTimeout');
             continueBtn.disabled = true;
         }
     }, 10000);
@@ -1591,7 +1605,7 @@ function testConnection() {
         document.head.removeChild(testScript);
         delete window[callbackName];
         resultDiv.className = 'connection-result error';
-        resultDiv.innerHTML = '❌ Failed to connect. Please check your Apps Script URL.';
+        resultDiv.innerHTML = '❌ ' + I18n.t('onboarding.step2.testError');
         continueBtn.disabled = true;
     };
     

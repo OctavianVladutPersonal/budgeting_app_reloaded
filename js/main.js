@@ -9,6 +9,11 @@ const today = new Date().toISOString().split('T')[0];
  * Main initialization function
  */
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize i18n system first (before any UI updates)
+    if (window.I18n) {
+        I18n.init();
+    }
+    
     // Check if user needs onboarding
     const isOnboardingComplete = UserConfig.isOnboardingComplete();
     
@@ -52,6 +57,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Update app UI with user's accounts and categories
         updateAppWithUserConfig(userConfig);
+    }
+    
+    // Apply translations after config is loaded
+    if (window.I18n) {
+        I18n.applyTranslations();
+        I18n.populateCategorySelects();
+        I18n.populateFrequencySelects();
     }
     
     // Initialize main app
