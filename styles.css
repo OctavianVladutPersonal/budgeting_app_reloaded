@@ -1488,7 +1488,8 @@ button:active {
 /* Delete Modal */
 #deleteModal,
 #reconfigureModal,
-#resetModal {
+#resetModal,
+#appFeaturesModal {
     position: fixed;
     top: 0;
     left: 0;
@@ -1507,7 +1508,8 @@ button:active {
 
 #deleteModal.show,
 #reconfigureModal.show,
-#resetModal.show {
+#resetModal.show,
+#appFeaturesModal.show {
     opacity: 1;
     visibility: visible;
     pointer-events: all;

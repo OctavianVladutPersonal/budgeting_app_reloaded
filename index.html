@@ -33,6 +33,10 @@
                     <h1>Welcome to Budgeting App! 🎯</h1>
                     <p>Let's set up your personalized budgeting experience in just a few steps.</p>
                     
+                    <div style="margin: 20px 0; text-align: center;">
+                        <button type="button" class="btn-primary" onclick="showAppFeaturesModal()" style="padding: 8px 16px; font-size: 14px;">📖 Learn About App Features</button>
+                    </div>
+                    
                     <div class="onboarding-form">
                         <h3>First, let's connect to your Google Spreadsheet</h3>
                         <p>Go to <a href="https://sheets.google.com" target="_blank">Google Sheets</a>, create a new spreadsheet, and copy its ID from the URL.</p>
@@ -228,11 +232,11 @@
 
         <label>Category</label>
         <select id="category">
-            <option>Childcare & School</option><option>Debt</option><option>Education</option>
-            <option>Entertainment</option><option>Going out</option><option selected>Groceries</option>
+            <option selected>Childcare & School</option><option>Debt</option><option>Education</option>
+            <option>Entertainment</option><option>Going out</option><option>Groceries</option>
             <option>Healthcare</option><option>Housing</option><option>Insurance</option>
             <option>Others</option><option>Personal Care</option><option>Savings & Investments</option>
-            <option>Transportation</option><option>Utilities</option><option>Vacation</option>
+            <option>Sport</option><option>Transportation</option><option>Utilities</option><option>Vacation</option>
             <option data-income-only="true" disabled style="display: none;">Account</option>
         </select>
 
@@ -344,22 +348,13 @@
             <h2 class="header-title">Recurring Transactions</h2>
         </div>
 
-        <div class="recurring-stats">
-            <div class="stat-card">
-                <h3>Active</h3>
-                <div class="stat-number" id="activeRecurringCount">0</div>
-            </div>
-            <div class="stat-card">
-                <h3>Due Today</h3>
-                <div class="stat-number" id="dueRecurringCount">0</div>
-            </div>
-        </div>
+
 
         <div class="transactions-container">
             <div class="transactions-header">
                 <h3>All Recurring Transactions</h3>
                 <div style="display: flex; gap: 10px;">
-                    <button type="button" id="refreshRecurringBtn" class="refresh-btn" onclick="refreshRecurringList()">🔄 Refresh</button>
+                    <button type="button" id="refreshRecurringBtn" class="refresh-btn" onclick="refreshRecurringList()">🔄</button>
                 </div>
             </div>
             <table class="transactions-table">
@@ -457,6 +452,63 @@
     </div>
 
     <!-- Confirmation Modals -->
+    <div id="appFeaturesModal" class="delete-modal">
+        <div class="delete-modal-content" style="max-width: 700px; max-height: 85vh; overflow-y: auto;">
+            <div class="delete-modal-header">
+                <span class="delete-icon">📖</span>
+                <h3>App Features Overview</h3>
+            </div>
+            <div style="text-align: left; padding: 10px 20px;">
+                <h4 style="color: #4285f4; margin-top: 15px;">💰 Transaction Management</h4>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>Add Transactions:</strong> Record income and expenses with details like payee, category, amount, and notes</li>
+                    <li><strong>Edit & Delete:</strong> Modify or remove transactions as needed</li>
+                    <li><strong>Multiple Accounts:</strong> Track transactions across different accounts (bank, cash, credit cards)</li>
+                    <li><strong>Categories:</strong> Organize spending with customizable categories</li>
+                </ul>
+
+                <h4 style="color: #4285f4; margin-top: 15px;">🔄 Recurring Transactions</h4>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>Automated Processing:</strong> Set up recurring income or expenses (daily, weekly, monthly, etc.)</li>
+                    <li><strong>Smart Scheduling:</strong> Transactions are automatically processed when due</li>
+                    <li><strong>Status Tracking:</strong> Monitor active, inactive, overdue, and due transactions</li>
+                    <li><strong>Flexible Management:</strong> Edit or delete recurring transactions anytime</li>
+                </ul>
+
+                <h4 style="color: #4285f4; margin-top: 15px;">📊 Analytics & Charts</h4>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>Spending Overview:</strong> Visual breakdown of expenses by category</li>
+                    <li><strong>Income vs Expenses:</strong> Compare your income and spending patterns</li>
+                    <li><strong>Trend Analysis:</strong> Track financial trends over time</li>
+                    <li><strong>Period Selection:</strong> Analyze data by day, week, month, or custom date ranges</li>
+                </ul>
+
+                <h4 style="color: #4285f4; margin-top: 15px;">⚙️ Customization</h4>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>Custom Accounts:</strong> Add your own bank accounts, cards, or cash sources</li>
+                    <li><strong>Custom Categories:</strong> Create categories that match your spending habits</li>
+                    <li><strong>Currency Selection:</strong> Choose your preferred currency</li>
+                    <li><strong>Privacy Mode:</strong> Hide sensitive information with one click</li>
+                </ul>
+
+                <h4 style="color: #4285f4; margin-top: 15px;">☁️ Cloud Sync</h4>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li><strong>Google Sheets Integration:</strong> All data stored securely in your own Google Spreadsheet</li>
+                    <li><strong>Real-time Sync:</strong> Changes are automatically saved to the cloud</li>
+                    <li><strong>Access Anywhere:</strong> Your data is accessible from any device</li>
+                    <li><strong>Data Ownership:</strong> You own and control all your financial data</li>
+                </ul>
+
+                <p style="margin-top: 20px; padding: 15px; background-color: #e8f4f8; border-radius: 8px; font-size: 14px;">
+                    <strong>💡 Tip:</strong> This app is designed to help you understand your spending patterns and make informed financial decisions!
+                </p>
+            </div>
+            <div class="delete-modal-buttons">
+                <button type="button" class="btn-primary" onclick="closeAppFeaturesModal()">Got it!</button>
+            </div>
+        </div>
+    </div>
+
     <div id="reconfigureModal" class="delete-modal">
         <div class="delete-modal-content">
             <div class="delete-modal-header">
@@ -523,7 +575,7 @@
                     <option>Entertainment</option><option>Going out</option><option>Groceries</option>
                     <option>Healthcare</option><option>Housing</option><option>Insurance</option>
                     <option>Others</option><option>Personal Care</option><option>Savings & Investments</option>
-                    <option>Transportation</option><option>Utilities</option><option>Vacation</option>
+                    <option>Sport</option><option>Transportation</option><option>Utilities</option><option>Vacation</option>
                     <option>Account</option>
                 </select>
 
@@ -576,7 +628,7 @@
                     <option>Entertainment</option><option>Going out</option><option>Groceries</option>
                     <option>Healthcare</option><option>Housing</option><option>Insurance</option>
                     <option>Others</option><option>Personal Care</option><option>Savings & Investments</option>
-                    <option>Transportation</option><option>Utilities</option><option>Vacation</option>
+                    <option>Sport</option><option>Transportation</option><option>Utilities</option><option>Vacation</option>
                     <option>Account</option>
                 </select>
 
@@ -643,7 +695,7 @@
                     <option>Entertainment</option><option>Going out</option><option>Groceries</option>
                     <option>Healthcare</option><option>Housing</option><option>Insurance</option>
                     <option>Others</option><option>Personal Care</option><option>Savings & Investments</option>
-                    <option>Transportation</option><option>Utilities</option><option>Vacation</option>
+                    <option>Sport</option><option>Transportation</option><option>Utilities</option><option>Vacation</option>
                     <option>Account</option>
                 </select>
 

@@ -34,8 +34,8 @@ async function loadRecentTransactions(forceRefresh = false) {
         }
     }
     
-    // Show loading animation
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;"><div class="loading-spinner"></div><span style="margin-left: 10px;">Loading transactions...</span></td></tr>';
+    // Show loading state
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #666;">Loading transactions...</td></tr>';
     
     try {
         const data = await fetchJSONP(window.CONFIG.scriptURL + '?action=getTransactions');
@@ -218,7 +218,9 @@ function openEditModal(transactionIndex) {
     // Populate form fields - handle both uppercase and lowercase property names
     const amount = transaction.Amount || transaction.amount || '';
     const payee = transaction.Payee || transaction.payee || '';
-    const category = transaction.Category || transaction.category || 'Groceries';
+    const categorySelect = document.getElementById('editCategory');
+    const firstCategory = categorySelect ? (Array.from(categorySelect.options).find(opt => !opt.hasAttribute('data-income-only'))?.value || '') : '';
+    const category = transaction.Category || transaction.category || firstCategory;
     const notes = transaction.Notes || transaction.notes || '';
     const account = transaction.Account || transaction.account || 'Ale';
     const type = transaction.Type || transaction.type || 'Expense';

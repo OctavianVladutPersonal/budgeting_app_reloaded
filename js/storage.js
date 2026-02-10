@@ -264,7 +264,7 @@ class UserConfig {
                     'Childcare & School', 'Debt', 'Education', 'Entertainment',
                     'Going out', 'Groceries', 'Healthcare', 'Housing',
                     'Insurance', 'Others', 'Personal Care', 'Savings & Investments',
-                    'Transportation', 'Utilities', 'Vacation'
+                    'Sport', 'Transportation', 'Utilities', 'Vacation'
                 ],
                 income: ['Account']
             },

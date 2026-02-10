@@ -21,9 +21,10 @@ function updateCategoryOptions() {
         accountOption.disabled = true;
         accountOption.style.display = 'none';
         
-        // If Account was selected, switch to Groceries
+        // If Account was selected, switch to first category
         if (categorySelect.value === 'Account') {
-            categorySelect.value = 'Groceries';
+            const firstOption = Array.from(categorySelect.options).find(opt => !opt.hasAttribute('data-income-only'));
+            if (firstOption) categorySelect.value = firstOption.value;
         }
     }
 }
@@ -122,9 +123,6 @@ async function handleRecurringTransactionSubmit() {
         // Only use startDate as fallback if nextDue field is empty, otherwise use the calculated/displayed value
         nextDue: nextDueDateValue || startDate
     };
-    
-    // Debug: Log the transaction object to see what's being sent
-    console.log('Recurring transaction being created:', transaction);
     
     try {
         const result = await RecurringTransactions.add(transaction);

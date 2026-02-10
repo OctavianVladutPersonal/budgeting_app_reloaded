@@ -140,6 +140,26 @@ function confirmReset() {
     resetApp();
 }
 
+function showAppFeaturesModal() {
+    document.getElementById('appFeaturesModal').classList.add('show');
+}
+
+function closeAppFeaturesModal() {
+    document.getElementById('appFeaturesModal').classList.remove('show');
+}
+
+// Close modal when clicking outside of it
+document.addEventListener('DOMContentLoaded', () => {
+    const appFeaturesModal = document.getElementById('appFeaturesModal');
+    if (appFeaturesModal) {
+        appFeaturesModal.addEventListener('click', (e) => {
+            if (e.target === appFeaturesModal) {
+                closeAppFeaturesModal();
+            }
+        });
+    }
+});
+
 function restartOnboarding() {
     // Get current user configuration
     const currentConfig = UserConfig.getConfig();

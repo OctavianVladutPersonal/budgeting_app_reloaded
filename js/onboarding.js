@@ -1129,6 +1129,8 @@ function testConnection(callback) {
             
             // Save final configuration
             if (UserConfig.saveConfig(this.config)) {
+                // Mark onboarding as complete
+                UserConfig.setOnboardingComplete();
                 
                 // Verify it was saved
                 const isComplete = UserConfig.isOnboardingComplete();
@@ -1235,11 +1237,11 @@ function testConnection(callback) {
             const currentIncome = categorySelect.querySelector('option[data-income-only="true"]');
             categorySelect.innerHTML = '';
             
-            this.config.categories.expense.forEach(category => {
+            this.config.categories.expense.forEach((category, index) => {
                 const option = document.createElement('option');
                 option.value = category;
                 option.textContent = category;
-                if (category === 'Groceries') option.selected = true;
+                if (index === 0) option.selected = true;
                 categorySelect.appendChild(option);
             });
             
