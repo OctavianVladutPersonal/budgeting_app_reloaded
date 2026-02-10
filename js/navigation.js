@@ -141,7 +141,14 @@ function confirmReset() {
 }
 
 function showAppFeaturesModal() {
-    document.getElementById('appFeaturesModal').classList.add('show');
+    const modal = document.getElementById('appFeaturesModal');
+    modal.classList.add('show');
+    
+    // Reset scroll position to top
+    const modalContent = modal.querySelector('.delete-modal-content');
+    if (modalContent) {
+        modalContent.scrollTop = 0;
+    }
 }
 
 function closeAppFeaturesModal() {

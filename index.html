@@ -27,6 +27,18 @@
     <!-- Onboarding Flow -->
     <div id="onboardingPage" class="page active">
         <div class="onboarding-container">
+            <!-- Theme Toggle for Onboarding -->
+            <div class="onboarding-theme-toggle">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="onboardingThemeToggle" onchange="toggleTheme(event)">
+                    <span class="toggle-slider"></span>
+                </label>
+                <span class="onboarding-theme-label">
+                    <span class="theme-icon">🌙</span>
+                    <span class="theme-text">Dark Mode</span>
+                </span>
+            </div>
+            
             <!-- Step 1: Welcome & Spreadsheet ID -->
             <div id="onboardingStep1" class="onboarding-step active">
                 <div class="onboarding-content">
@@ -428,6 +440,20 @@
         
         <div class="settings-container">
             <div class="settings-section">
+                <h3>Appearance</h3>
+                <div class="theme-toggle-container">
+                    <div class="theme-toggle-label">
+                        <span class="theme-icon">🌙</span>
+                        <span>Dark Mode</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="themeToggle" onchange="toggleTheme(event)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
                 <h3>Current Configuration</h3>
                 <div class="config-display" id="configDisplay">
                     <!-- Configuration will be displayed here -->
@@ -458,48 +484,48 @@
                 <span class="delete-icon">📖</span>
                 <h3>App Features Overview</h3>
             </div>
-            <div style="text-align: left; padding: 10px 20px;">
-                <h4 style="color: #4285f4; margin-top: 15px;">💰 Transaction Management</h4>
-                <ul style="margin-left: 20px; line-height: 1.8;">
+            <div class="modal-features-content">
+                <h4 class="feature-heading">💰 Transaction Management</h4>
+                <ul class="feature-list">
                     <li><strong>Add Transactions:</strong> Record income and expenses with details like payee, category, amount, and notes</li>
                     <li><strong>Edit & Delete:</strong> Modify or remove transactions as needed</li>
                     <li><strong>Multiple Accounts:</strong> Track transactions across different accounts (bank, cash, credit cards)</li>
                     <li><strong>Categories:</strong> Organize spending with customizable categories</li>
                 </ul>
 
-                <h4 style="color: #4285f4; margin-top: 15px;">🔄 Recurring Transactions</h4>
-                <ul style="margin-left: 20px; line-height: 1.8;">
+                <h4 class="feature-heading">🔄 Recurring Transactions</h4>
+                <ul class="feature-list">
                     <li><strong>Automated Processing:</strong> Set up recurring income or expenses (daily, weekly, monthly, etc.)</li>
                     <li><strong>Smart Scheduling:</strong> Transactions are automatically processed when due</li>
                     <li><strong>Status Tracking:</strong> Monitor active, inactive, overdue, and due transactions</li>
                     <li><strong>Flexible Management:</strong> Edit or delete recurring transactions anytime</li>
                 </ul>
 
-                <h4 style="color: #4285f4; margin-top: 15px;">📊 Analytics & Charts</h4>
-                <ul style="margin-left: 20px; line-height: 1.8;">
+                <h4 class="feature-heading">📊 Analytics & Charts</h4>
+                <ul class="feature-list">
                     <li><strong>Spending Overview:</strong> Visual breakdown of expenses by category</li>
                     <li><strong>Income vs Expenses:</strong> Compare your income and spending patterns</li>
                     <li><strong>Trend Analysis:</strong> Track financial trends over time</li>
                     <li><strong>Period Selection:</strong> Analyze data by day, week, month, or custom date ranges</li>
                 </ul>
 
-                <h4 style="color: #4285f4; margin-top: 15px;">⚙️ Customization</h4>
-                <ul style="margin-left: 20px; line-height: 1.8;">
+                <h4 class="feature-heading">⚙️ Customization</h4>
+                <ul class="feature-list">
                     <li><strong>Custom Accounts:</strong> Add your own bank accounts, cards, or cash sources</li>
                     <li><strong>Custom Categories:</strong> Create categories that match your spending habits</li>
                     <li><strong>Currency Selection:</strong> Choose your preferred currency</li>
                     <li><strong>Privacy Mode:</strong> Hide sensitive information with one click</li>
                 </ul>
 
-                <h4 style="color: #4285f4; margin-top: 15px;">☁️ Cloud Sync</h4>
-                <ul style="margin-left: 20px; line-height: 1.8;">
+                <h4 class="feature-heading">☁️ Cloud Sync</h4>
+                <ul class="feature-list">
                     <li><strong>Google Sheets Integration:</strong> All data stored securely in your own Google Spreadsheet</li>
                     <li><strong>Real-time Sync:</strong> Changes are automatically saved to the cloud</li>
                     <li><strong>Access Anywhere:</strong> Your data is accessible from any device</li>
                     <li><strong>Data Ownership:</strong> You own and control all your financial data</li>
                 </ul>
 
-                <p style="margin-top: 20px; padding: 15px; background-color: #e8f4f8; border-radius: 8px; font-size: 14px;">
+                <p class="feature-tip">
                     <strong>💡 Tip:</strong> This app is designed to help you understand your spending patterns and make informed financial decisions!
                 </p>
             </div>
@@ -760,6 +786,7 @@
     </div>
 
     <!-- Load scripts in correct order -->
+    <script src="js/theme.js"></script>
     <script src="js/storage.js"></script>
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>

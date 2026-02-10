@@ -1,11 +1,50 @@
+/* CSS Variables for Light/Dark Mode */
+:root {
+    --bg-primary: #f4f4f9;
+    --bg-secondary: white;
+    --bg-tertiary: #f8f9fa;
+    --text-primary: #2c3e50;
+    --text-secondary: #495057;
+    --text-tertiary: #6c757d;
+    --text-muted: #666;
+    --border-color: #e1e5e9;
+    --border-light: #e9ecef;
+    --border-medium: #dee2e6;
+    --shadow-sm: 0 2px 10px rgba(0,0,0,0.1);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.1);
+    --input-bg: white;
+    --input-border: #ccc;
+    --card-bg: white;
+}
+
+body[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #363636;
+    --text-primary: #e0e0e0;
+    --text-secondary: #c0c0c0;
+    --text-tertiary: #a0a0a0;
+    --text-muted: #888;
+    --border-color: #404040;
+    --border-light: #4a4a4a;
+    --border-medium: #505050;
+    --shadow-sm: 0 2px 10px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+    --input-bg: #363636;
+    --input-border: #505050;
+    --card-bg: #2d2d2d;
+}
+
 body {
     font-family: sans-serif;
     padding: 20px;
     margin: 0;
-    background: #f4f4f9;
+    background: var(--bg-primary);
     width: 100%;
     min-height: 100vh;
     box-sizing: border-box;
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Onboarding Styles */
@@ -13,10 +52,40 @@ body {
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-md);
     position: relative;
+}
+
+/* Theme Toggle for Onboarding */
+.onboarding-theme-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 10;
+}
+
+.onboarding-theme-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.theme-text {
+    display: none;
+}
+
+@media (min-width: 480px) {
+    .theme-text {
+        display: inline;
+    }
 }
 
 /* Hide navbar during onboarding */
@@ -44,19 +113,19 @@ body:has(#onboardingPage.active) .navbar {
 }
 
 .onboarding-content h1 {
-    color: #2c3e50;
+    color: var(--text-primary);
     margin-bottom: 15px;
     font-size: 2.2em;
 }
 
 .onboarding-content h2 {
-    color: #2c3e50;
+    color: var(--text-primary);
     margin-bottom: 15px;
     font-size: 1.8em;
 }
 
 .onboarding-content p {
-    color: #666;
+    color: var(--text-muted);
     margin-bottom: 25px;
     font-size: 1.1em;
     line-height: 1.5;
@@ -73,18 +142,20 @@ body:has(#onboardingPage.active) .navbar {
     margin-top: 15px;
     margin-bottom: 5px;
     font-weight: bold;
-    color: #333;
+    color: var(--text-secondary);
 }
 
 .onboarding-form input,
 .onboarding-form select {
     width: 100%;
     padding: 12px;
-    border: 2px solid #e1e5e9;
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     font-size: 16px;
     transition: border-color 0.3s ease;
     box-sizing: border-box;
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
 
 .onboarding-form input:focus,
@@ -96,7 +167,7 @@ body:has(#onboardingPage.active) .navbar {
 .onboarding-form small {
     display: block;
     margin-top: 5px;
-    color: #666;
+    color: var(--text-muted);
     font-size: 0.9em;
 }
 
@@ -186,10 +257,12 @@ body:has(#onboardingPage.active) .navbar {
     flex: 1;
     min-width: 0;
     padding: 14px 16px;
-    border: 2px solid #e1e5e9;
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     font-size: 16px;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
 
 .input-with-button input:focus {
@@ -221,16 +294,16 @@ body:has(#onboardingPage.active) .navbar {
 .items-list {
     max-height: 280px;
     overflow-y: auto;
-    border: 2px solid #e1e5e9;
+    border: 2px solid var(--border-color);
     border-radius: 10px;
     padding: 16px;
-    background: white;
+    background: var(--bg-secondary);
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .items-list:empty::after {
     content: "No items added yet. Add your first account above.";
-    color: #999;
+    color: var(--text-tertiary);
     font-style: italic;
     text-align: center;
     display: block;
@@ -242,10 +315,10 @@ body:has(#onboardingPage.active) .navbar {
     justify-content: space-between;
     align-items: center;
     padding: 14px 16px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: var(--bg-tertiary);
     border-radius: 8px;
     margin-bottom: 10px;
-    border: 1px solid #e1e5e9;
+    border: 1px solid var(--border-color);
     transition: all 0.2s ease;
     min-height: 50px;
 }
@@ -262,7 +335,7 @@ body:has(#onboardingPage.active) .navbar {
 
 .list-item span {
     font-weight: 500;
-    color: #495057;
+    color: var(--text-secondary);
     flex: 1;
     font-size: 15px;
     display: flex;
@@ -372,30 +445,30 @@ body:has(#onboardingPage.active) .navbar {
 }
 
 .settings-section {
-    background: white;
+    background: var(--bg-secondary);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 20px;
 }
 
 .settings-section h3 {
-    color: #2c3e50;
+    color: var(--text-primary);
     margin-bottom: 15px;
     font-size: 1.3em;
 }
 
 .config-display {
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
     padding: 15px;
     border-radius: 6px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-light);
 }
 
 .config-item {
     margin-bottom: 10px;
     padding: 8px 0;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .config-item:last-child {
@@ -405,13 +478,13 @@ body:has(#onboardingPage.active) .navbar {
 
 .config-label {
     font-weight: bold;
-    color: #495057;
+    color: var(--text-secondary);
     display: inline-block;
     width: 140px;
 }
 
 .config-value {
-    color: #6c757d;
+    color: var(--text-tertiary);
     word-break: break-all;
 }
 
@@ -451,9 +524,146 @@ body:has(#onboardingPage.active) .navbar {
     background: #c82333;
 }
 
+.btn-success {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
 .settings-actions button {
     width: 100%;
     margin: 0;
+}
+
+/* Theme Toggle Styles */
+.theme-toggle-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+}
+
+.theme-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.theme-icon {
+    font-size: 20px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #28a745;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.toggle-switch input:focus + .toggle-slider {
+    box-shadow: 0 0 1px #28a745;
+}
+
+body[data-theme="dark"] .theme-icon {
+    filter: brightness(1.2);
+}
+
+/* App Features Modal Styles */
+.modal-features-content {
+    text-align: left;
+    padding: 10px 20px;
+}
+
+.feature-heading {
+    color: #4285f4;
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+body[data-theme="dark"] .feature-heading {
+    color: #5ea3ff;
+}
+
+.feature-list {
+    margin-left: 20px;
+    line-height: 1.8;
+    color: var(--text-primary);
+}
+
+.feature-list li {
+    margin-bottom: 8px;
+}
+
+.feature-list strong {
+    color: var(--text-primary);
+}
+
+.feature-tip {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #e8f4f8;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1a1a1a;
+}
+
+body[data-theme="dark"] .feature-tip {
+    background-color: #1a3a4a;
+    color: #e0f4ff;
+    border: 1px solid #2a5a7a;
 }
 
 /* Responsive Design for Onboarding */
@@ -461,6 +671,12 @@ body:has(#onboardingPage.active) .navbar {
     .onboarding-container {
         margin: 10px;
         padding: 15px;
+        padding-top: 55px;
+    }
+    
+    .onboarding-theme-toggle {
+        top: 15px;
+        right: 15px;
     }
     
     .onboarding-content h1 {
@@ -549,15 +765,15 @@ body:has(#onboardingPage.active) .navbar {
 }
 
 .instruction-card {
-    background: #f8f9fa;
-    border: 1px solid #e1e5e9;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 20px;
     margin-bottom: 20px;
 }
 
 .instruction-card h3 {
-    color: #2c3e50;
+    color: var(--text-primary);
     margin-bottom: 15px;
     font-size: 1.3em;
 }
@@ -571,7 +787,7 @@ body:has(#onboardingPage.active) .navbar {
 .instruction-list li {
     margin-bottom: 8px;
     line-height: 1.5;
-    color: #495057;
+    color: var(--text-secondary);
 }
 
 .instruction-list a {
@@ -584,8 +800,8 @@ body:has(#onboardingPage.active) .navbar {
 }
 
 .example-box {
-    background: white;
-    border: 1px solid #dee2e6;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
     border-radius: 6px;
     padding: 15px;
     margin: 15px 0;
@@ -601,7 +817,7 @@ body:has(#onboardingPage.active) .navbar {
 
 .code-container {
     margin: 15px 0;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border-medium);
     border-radius: 6px;
     overflow: hidden;
 }
@@ -639,12 +855,13 @@ body:has(#onboardingPage.active) .navbar {
     height: 200px;
     font-family: 'Courier New', monospace;
     font-size: 12px;
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
     border: none;
     padding: 15px;
     resize: vertical;
     line-height: 1.4;
     box-sizing: border-box;
+    color: var(--text-primary);
 }
 
 .connection-status {
@@ -653,8 +870,8 @@ body:has(#onboardingPage.active) .navbar {
 }
 
 .connection-result {
-    background: white;
-    border: 2px solid #e1e5e9;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     padding: 15px;
     margin-bottom: 15px;
@@ -703,10 +920,10 @@ body:has(#onboardingPage.active) .navbar {
 }
 
 form {
-    background: white;
+    background: var(--bg-secondary);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     max-width: 100%;
 }
 
@@ -722,10 +939,12 @@ textarea {
     width: 100%;
     padding: 10px;
     margin-top: 5px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--input-border);
     border-radius: 4px;
     box-sizing: border-box;
     font-size: 16px;
+    background: var(--input-bg);
+    color: var(--text-primary);
 }
 
 @media (max-width: 768px) {
@@ -762,9 +981,9 @@ button:active {
 .recurring-section {
     margin-top: 15px;
     padding: 15px;
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
     border-radius: 8px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border-light);
 }
 
 .recurring-checkbox-container {
@@ -784,7 +1003,7 @@ button:active {
 .recurring-label {
     margin: 0;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--text-primary);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -819,7 +1038,7 @@ button:active {
     margin: 0 0 5px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #495057;
+    color: var(--text-secondary);
 }
 
 .recurring-field input,
@@ -833,14 +1052,14 @@ button:active {
 }
 
 .recurring-desc-text {
-    color: #6c757d;
+    color: var(--text-tertiary);
     font-style: italic;
     font-size: 13px;
     display: block;
     padding: 8px;
-    background: #fff;
+    background: var(--bg-secondary);
     border-radius: 4px;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border-medium);
 }
 
 /* Recurring Transactions Page Styles */
@@ -852,16 +1071,16 @@ button:active {
 }
 
 .stat-card {
-    background: white;
+    background: var(--bg-secondary);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     text-align: center;
 }
 
 .stat-card h3 {
     margin: 0 0 10px 0;
-    color: #6c757d;
+    color: var(--text-tertiary);
     font-size: 14px;
     font-weight: 600;
 }
@@ -869,13 +1088,13 @@ button:active {
 .stat-number {
     font-size: 24px;
     font-weight: 700;
-    color: #2c3e50;
+    color: var(--text-primary);
 }
 
 .recurring-list-container {
-    background: white;
+    background: var(--bg-secondary);
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
 }
 
@@ -884,12 +1103,12 @@ button:active {
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .recurring-list-header h3 {
     margin: 0;
-    color: #2c3e50;
+    color: var(--text-primary);
 }
 
 .add-recurring-btn,
@@ -951,7 +1170,7 @@ button:active {
 .empty-state {
     text-align: center;
     padding: 40px 20px;
-    color: #6c757d;
+    color: var(--text-tertiary);
 }
 
 .empty-state p {
@@ -963,12 +1182,12 @@ button:active {
     justify-content: space-between;
     align-items: center;
     padding: 15px 20px;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-light);
     transition: background-color 0.2s ease;
 }
 
 .recurring-item:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-tertiary);
 }
 
 .recurring-item:last-child {
@@ -981,13 +1200,13 @@ button:active {
 
 .recurring-title {
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--text-primary);
     margin-bottom: 4px;
 }
 
 .recurring-details {
     font-size: 14px;
-    color: #6c757d;
+    color: var(--text-tertiary);
     display: flex;
     gap: 15px;
     flex-wrap: wrap;
@@ -996,7 +1215,7 @@ button:active {
 .recurring-amount {
     font-weight: 600;
     font-size: 16px;
-    color: #2c3e50;
+    color: var(--text-primary);
 }
 
 .recurring-amount.income {
@@ -1188,6 +1407,7 @@ button:active {
 .header-title {
     margin: 0;
     font-size: 24px;
+    color: var(--text-primary);
 }
 
 .view-spreadsheet-btn {
@@ -1315,7 +1535,7 @@ button:active {
 }
 
 .edit-modal-content {
-    background: white;
+    background: var(--bg-secondary);
     padding: 20px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -1332,20 +1552,20 @@ button:active {
     align-items: center;
     margin-bottom: 20px;
     padding-bottom: 15px;
-    border-bottom: 2px solid #e9ecef;
+    border-bottom: 2px solid var(--border-light);
 }
 
 .edit-modal-header h3 {
     margin: 0;
     font-size: 24px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .edit-modal-close {
     background: none;
     border: none;
     font-size: 32px;
-    color: #999;
+    color: var(--text-tertiary);
     cursor: pointer;
     padding: 0;
     width: auto;
@@ -1355,7 +1575,7 @@ button:active {
 }
 
 .edit-modal-close:hover {
-    color: #333;
+    color: var(--text-primary);
 }
 
 /* Recurring Transaction Modals */
@@ -1516,7 +1736,7 @@ button:active {
 }
 
 .delete-modal-content {
-    background: white;
+    background: var(--bg-secondary);
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
@@ -1539,17 +1759,17 @@ button:active {
 .delete-modal-header h3 {
     margin: 0;
     font-size: 24px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .delete-message {
     margin: 15px 0;
-    color: #666;
+    color: var(--text-muted);
     line-height: 1.5;
 }
 
 .delete-transaction-details {
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
     padding: 15px;
     border-radius: 8px;
     margin: 20px 0;
@@ -1558,13 +1778,13 @@ button:active {
 
 .delete-detail-row {
     padding: 5px 0;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .delete-detail-row strong {
     display: inline-block;
     width: 80px;
-    color: #555;
+    color: var(--text-secondary);
 }
 
 .delete-modal-buttons {
@@ -1779,10 +1999,10 @@ button:active {
     padding: 12px 0;
 }
 .transactions-container {
-    background: white;
+    background: var(--bg-secondary);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     margin-top: 20px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -1797,7 +2017,7 @@ button:active {
 .transactions-container h2 {
     margin-top: 0;
     margin-bottom: 15px;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .transactions-table {
@@ -1807,15 +2027,15 @@ button:active {
 }
 
 .transactions-table thead {
-    background: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
+    background: var(--bg-tertiary);
+    border-bottom: 2px solid var(--border-medium);
 }
 
 .transactions-table th {
     padding: 12px;
     text-align: left;
     font-weight: 600;
-    color: #495057;
+    color: var(--text-secondary);
 }
 
 .transactions-table th:last-child {
@@ -1824,12 +2044,12 @@ button:active {
 
 .transactions-table td {
     padding: 12px;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid var(--border-medium);
     vertical-align: middle;
 }
 
 .transactions-table tbody tr:hover {
-    background: #f8f9fa;
+    background: var(--bg-tertiary);
 }
 
 .transactions-table .amount {
@@ -1985,8 +2205,8 @@ button:active {
     border: 2px solid rgba(255, 255, 255, 0.3);
     border-radius: 8px;
     font-size: 14px;
-    background: rgba(255, 255, 255, 0.95);
-    color: #333;
+    background: var(--input-bg);
+    color: var(--text-primary);
     margin: 0;
     font-family: inherit;
     transition: border-color 0.3s ease;
@@ -1995,7 +2215,7 @@ button:active {
 .date-input-group input[type="date"]:focus {
     outline: none;
     border-color: rgba(255, 255, 255, 0.8);
-    background: white;
+    background: var(--input-bg);
 }
 
 .quick-filters {
@@ -2067,17 +2287,17 @@ button:active {
 }
 
 .chart-wrapper {
-    background: white;
+    background: var(--bg-secondary);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: var(--shadow-sm);
     position: relative;
 }
 
 .chart-wrapper h3 {
     margin-top: 0;
     margin-bottom: 20px;
-    color: #2c3e50;
+    color: var(--text-primary);
     font-size: 18px;
 }
 
