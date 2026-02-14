@@ -35,6 +35,9 @@ class OnboardingManager {
         // Prefill form fields if reconfiguring
         if (this.isReconfiguring) {
             this.prefillFormFields();
+        } else {
+            // Initialize language selector with current language for new onboarding
+            this.initializeLanguageSelector();
         }
         
         // Initialize validation states
@@ -46,10 +49,15 @@ class OnboardingManager {
      * Prefill form fields with existing configuration data
      */
     prefillFormFields() {
-        // Step 1: Spreadsheet ID
+        // Step 1: Spreadsheet ID and Language
         const spreadsheetIdInput = document.getElementById('onboardingSpreadsheetId');
         if (spreadsheetIdInput && this.config.spreadsheetId) {
             spreadsheetIdInput.value = this.config.spreadsheetId;
+        }
+        
+        const languageSelect = document.getElementById('onboardingLanguage');
+        if (languageSelect && this.config.userInfo.language) {
+            languageSelect.value = this.config.userInfo.language;
         }
 
         // Step 2: Script URL
@@ -69,6 +77,18 @@ class OnboardingManager {
         const currencySelect = document.getElementById('onboardingCurrency');
         if (currencySelect && this.config.userInfo.currency) {
             currencySelect.value = this.config.userInfo.currency;
+        }
+    }
+
+    /**
+     * Initialize language selector with current language
+     */
+    initializeLanguageSelector() {
+        const languageSelect = document.getElementById('onboardingLanguage');
+        if (languageSelect) {
+            // Get current language from I18n or use config default
+            const currentLanguage = window.I18n ? I18n.currentLanguage : this.config.userInfo.language;
+            languageSelect.value = currentLanguage;
         }
     }
 
@@ -1112,10 +1132,16 @@ function testConnection(callback) {
     saveCurrentStepData() {
         switch (this.currentStep) {
             case 1:
-                // Save spreadsheet ID from step 1
+                // Save spreadsheet ID and language from step 1
                 const spreadsheetId = document.getElementById('onboardingSpreadsheetId').value.trim();
                 this.config.spreadsheetId = spreadsheetId;
                 this.config.spreadsheetURL = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+                
+                // Save language preference
+                const languageSelect = document.getElementById('onboardingLanguage');
+                if (languageSelect) {
+                    this.config.userInfo.language = languageSelect.value;
+                }
                 break;
                 
             case 2:
@@ -1165,6 +1191,11 @@ function testConnection(callback) {
      * Finish onboarding and show main app
      */
     finishOnboarding() {
+        // Apply the selected language
+        if (this.config.userInfo.language && window.I18n) {
+            I18n.setLanguage(this.config.userInfo.language);
+        }
+        
         // Always go to home page after onboarding completion
         document.getElementById('onboardingPage').classList.remove('active');
         document.getElementById('homePage').classList.add('active');

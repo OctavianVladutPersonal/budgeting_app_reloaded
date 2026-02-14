@@ -49,6 +49,14 @@
                         <button type="button" class="btn-primary" onclick="showAppFeaturesModal()" style="padding: 8px 16px; font-size: 14px;" data-i18n="onboarding.features.button">📖 Learn About App Features</button>
                     </div>
                     
+                    <div class="onboarding-form" style="max-width: 500px; margin: 0 auto;">
+                        <label data-i18n="onboarding.step1.language" style="display: block; margin-bottom: 8px; font-weight: 500;">Language</label>
+                        <select id="onboardingLanguage" onchange="I18n.setLanguage(this.value)" style="width: 100%; padding: 12px; margin-bottom: 25px; border: 2px solid var(--border-color); border-radius: 6px; font-size: 16px; background: var(--input-bg); color: var(--text-primary);">
+                            <option value="en">English</option>
+                            <option value="ro">Română</option>
+                        </select>
+                    </div>
+                    
                     <div class="onboarding-form">
                         <h3 data-i18n="onboarding.step1.title">First, let's connect to your Google Spreadsheet</h3>
                         <p data-i18n="onboarding.step1.instructions">Go to <a href="https://sheets.google.com" target="_blank">Google Sheets</a>, create a new spreadsheet, and copy its ID from the URL.</p>
@@ -562,13 +570,13 @@
         <div class="delete-modal-content">
             <div class="delete-modal-header">
                 <span class="delete-icon">⚠️</span>
-                <h3>Reset All Data</h3>
+                <h3 data-i18n="reset.title">Reset All Data</h3>
             </div>
-            <p class="delete-message"><strong>Warning:</strong> This will permanently delete ALL your configuration, accounts, categories, and settings. This action cannot be undone.</p>
-            <p style="color: #dc3545; font-weight: bold; margin-top: 10px;">Are you absolutely sure you want to continue?</p>
+            <p class="delete-message" data-i18n="reset.message"><strong>Warning:</strong> This will permanently delete ALL your configuration, accounts, categories, and settings. This action cannot be undone.</p>
+            <p style="color: #dc3545; font-weight: bold; margin-top: 10px;" data-i18n="reset.confirm.message">Are you absolutely sure you want to continue?</p>
             <div class="delete-modal-buttons">
-                <button type="button" class="btn-cancel" onclick="closeResetModal()">Cancel</button>
-                <button type="button" class="btn-delete" onclick="confirmReset()">Reset Everything</button>
+                <button type="button" class="btn-cancel" onclick="closeResetModal()" data-i18n="reset.cancel">Cancel</button>
+                <button type="button" class="btn-delete" onclick="confirmReset()" data-i18n="reset.confirm">Reset Everything</button>
             </div>
         </div>
     </div>
