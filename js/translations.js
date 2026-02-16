@@ -344,7 +344,11 @@ const translations = {
         'common.delete': 'Delete',
         'common.edit': 'Edit',
         'common.close': 'Close',
-        'common.obfuscate': 'Hide sensitive information'
+        'common.obfuscate': 'Hide sensitive information',
+        
+        // Footer
+        'footer.madeWith': 'Made with ❤️ for better financial management',
+        'footer.contact': 'Contact me on Telegram'
     },
     
     ro: {
@@ -690,7 +694,11 @@ const translations = {
         'common.delete': 'Șterge',
         'common.edit': 'Editează',
         'common.close': 'Închide',
-        'common.obfuscate': 'Ascunde informațiile sensibile'
+        'common.obfuscate': 'Ascunde informațiile sensibile',
+        
+        // Footer
+        'footer.madeWith': 'Creat cu ❤️ pentru o mai bună gestionare financiară',
+        'footer.contact': 'Contactează-mă pe Telegram'
     }
 };
 

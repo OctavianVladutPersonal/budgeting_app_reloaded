@@ -2120,41 +2120,6 @@ button:active {
     transform: scale(0.95);
 }
 
-.coffee-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: linear-gradient(135deg, #FFDD00 0%, #FFA500 100%);
-    color: #2c3e50;
-    text-decoration: none;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(255, 221, 0, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-}
-
-.coffee-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 221, 0, 0.5);
-    background: linear-gradient(135deg, #FFE44D 0%, #FFB347 100%);
-}
-
-.coffee-btn:active {
-    transform: translateY(0);
-}
-
-.coffee-icon {
-    font-size: 18px;
-    display: inline-block;
-}
-
-.coffee-text {
-    white-space: nowrap;
-}
-
 .nav-menu {
     list-style: none;
     margin: 0;
@@ -2458,4 +2423,136 @@ button:active {
     #chartsPage {
         padding: 15px 0;
     }
+}
+
+/* Footer Styles */
+.app-footer {
+    background-color: var(--bg-secondary);
+    border-top: 2px solid var(--border-color);
+    margin-top: 40px;
+    padding: 30px 20px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.footer-content {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    text-align: center;
+}
+
+.footer-text {
+    color: var(--text-secondary);
+    font-size: 15px;
+    margin: 0;
+    line-height: 1.6;
+    font-weight: 500;
+}
+
+.footer-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.footer-coffee-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #FFDD00 0%, #FFA500 100%);
+    color: #2c3e50;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 221, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.footer-coffee-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 221, 0, 0.5);
+    background: linear-gradient(135deg, #FFE44D 0%, #FFB347 100%);
+}
+
+.footer-coffee-btn:active {
+    transform: translateY(0);
+}
+
+.footer-contact-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #0088cc 0%, #005f8d 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 136, 204, 0.3);
+}
+
+.footer-contact-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 136, 204, 0.5);
+    background: linear-gradient(135deg, #009ee0 0%, #0077a8 100%);
+}
+
+.footer-contact-btn:active {
+    transform: translateY(0);
+}
+
+.coffee-icon,
+.contact-icon {
+    font-size: 18px;
+}
+
+.coffee-text,
+.contact-text {
+    white-space: nowrap;
+}
+
+/* Footer responsive styles */
+@media (max-width: 768px) {
+    .app-footer {
+        padding: 25px 15px;
+        margin-top: 30px;
+    }
+    
+    .footer-content {
+        gap: 18px;
+    }
+    
+    .footer-buttons {
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+    }
+    
+    .footer-text {
+        font-size: 14px;
+    }
+    
+    .footer-coffee-btn,
+    .footer-contact-btn {
+        width: 100%;
+        max-width: 300px;
+        justify-content: center;
+        padding: 12px 24px;
+        font-size: 15px;
+    }
+}
+
+/* Hide footer during onboarding */
+body:has(#onboardingPage.active) .app-footer {
+    display: none;
 }
