@@ -8,6 +8,7 @@ const translations = {
         'nav.charts': 'Charts',
         'nav.settings': 'Settings',
         'nav.title': 'Budgeting App',
+        'nav.coffee': 'Buy me a coffee',
         
         // Home Page - Transaction Form
         'home.title': 'New Transaction',
@@ -353,6 +354,7 @@ const translations = {
         'nav.charts': 'Grafice',
         'nav.settings': 'Setări',
         'nav.title': 'Aplicație Buget',
+        'nav.coffee': 'Oferă-mi o cafea',
         
         // Home Page - Transaction Form
         'home.title': 'Tranzacție Nouă',

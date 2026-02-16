@@ -2120,6 +2120,41 @@ button:active {
     transform: scale(0.95);
 }
 
+.coffee-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #FFDD00 0%, #FFA500 100%);
+    color: #2c3e50;
+    text-decoration: none;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 221, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.coffee-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 221, 0, 0.5);
+    background: linear-gradient(135deg, #FFE44D 0%, #FFB347 100%);
+}
+
+.coffee-btn:active {
+    transform: translateY(0);
+}
+
+.coffee-icon {
+    font-size: 18px;
+    display: inline-block;
+}
+
+.coffee-text {
+    white-space: nowrap;
+}
+
 .nav-menu {
     list-style: none;
     margin: 0;
