@@ -7,7 +7,7 @@ const translations = {
         'nav.recurring': 'Recurring',
         'nav.charts': 'Charts',
         'nav.settings': 'Settings',
-        'nav.title': 'Budgeting App',
+        'nav.title': 'Spending Tracker',
         'nav.coffee': 'Buy me a coffee',
         
         // Home Page - Transaction Form
@@ -160,7 +160,7 @@ const translations = {
         'reset.confirm': 'Reset Everything',
         
         // Onboarding
-        'onboarding.welcome.title': 'Welcome to Budgeting App! 🎯',
+        'onboarding.welcome.title': 'Welcome to your Spending Tracker! 🎯',
         'onboarding.welcome.subtitle': 'Let\'s set up your personalized budgeting experience in just a few steps.',
         'onboarding.features.button': '📖 Learn About App Features',
         'onboarding.step1.title': 'First, let\'s connect to your Google Spreadsheet',
@@ -230,7 +230,7 @@ const translations = {
         'onboarding.step5.complete': 'Complete Setup',
         
         'onboarding.complete.title': 'Setup Complete!',
-        'onboarding.complete.message': 'Your budgeting app is now personalized and ready to use.',
+        'onboarding.complete.message': 'Your Spending Tracker is now personalized and ready to use.',
         
         'onboarding.progress': 'of',
         
@@ -357,7 +357,7 @@ const translations = {
         'nav.recurring': 'Recurente',
         'nav.charts': 'Grafice',
         'nav.settings': 'Setări',
-        'nav.title': 'Aplicație Buget',
+        'nav.title': 'Monitor de Cheltuieli',
         'nav.coffee': 'Oferă-mi o cafea',
         
         // Home Page - Transaction Form
@@ -510,7 +510,7 @@ const translations = {
         'reset.confirm': 'Resetează Tot',
         
         // Onboarding
-        'onboarding.welcome.title': 'Bine ați venit la Aplicația de Buget! 🎯',
+        'onboarding.welcome.title': 'Bine ați venit la Monitorul de Cheltuieli! 🎯',
         'onboarding.welcome.subtitle': 'Să vă configurăm experiența personalizată de bugetare în doar câțiva pași.',
         'onboarding.features.button': '📖 Aflați despre funcționalitățile aplicației',
         'onboarding.step1.title': 'Mai întâi, să ne conectăm la Google Spreadsheet',
@@ -580,7 +580,7 @@ const translations = {
         'onboarding.step5.complete': 'Finalizează Configurarea',
         
         'onboarding.complete.title': 'Configurare Completă!',
-        'onboarding.complete.message': 'Aplicația dvs. de bugetare este acum personalizată și gata de utilizare.',
+        'onboarding.complete.message': 'Monitorul tău de cheltuieli este acum personalizat și gata de utilizare.',
         
         'onboarding.progress': 'din',
         
