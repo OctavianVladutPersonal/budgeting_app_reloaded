@@ -109,7 +109,7 @@ class OnboardingManager {
         this.currentStep = 1;
         
         // Reset step 2 tabs to initial state
-        this.resetStep2Tabs();
+        this.resetStep2();
         
         // Reset step 5 to original content (in case it was showing completion message)
         const step5 = document.getElementById('onboardingStep5');
@@ -152,55 +152,39 @@ class OnboardingManager {
     /**
      * Reset step 2 tabs to initial state
      */
-    resetStep2Tabs() {
-        // Reset to first tab (script setup)
-        showSetupTab('script');
-        
+    resetStep2() {
         // Reset connection test state
         const connectionTest = document.getElementById('connectionTest');
         if (connectionTest) {
             connectionTest.className = 'connection-result';
-            const message = window.I18n ? I18n.t('onboarding.step2.testMessage', 'Click "Test Connection" to verify your setup') : 'Click "Test Connection" to verify your setup';
-            connectionTest.innerHTML = `<span>${message}</span>`;
+            connectionTest.style.display = 'none';
+            connectionTest.innerHTML = '';
         }
-        
-        // Disable continue button until connection is tested
+
+        // Disable continue button until connection succeeds
         const continueBtn = document.getElementById('step2ContinueBtn');
         if (continueBtn) {
             continueBtn.disabled = true;
         }
-        
-        // Disable tab navigation button initially
-        const tabNextBtn = document.querySelector('#scriptTab .tab-next');
-        if (tabNextBtn) {
-            tabNextBtn.disabled = true;
-        }
-    }
 
-    /**
-     * Load the Apps Script code into the textarea with the user's spreadsheet ID
-     */
-    loadAppsScriptCode() {
-        const codeTextarea = document.getElementById('appsScriptCode');
-        const spreadsheetId = this.config.spreadsheetId || document.getElementById('onboardingSpreadsheetId')?.value.trim();
-        
-        if (codeTextarea && spreadsheetId) {
-            // Generate code with the actual spreadsheet ID directly embedded
-            const code = this.getAppsScriptCode(spreadsheetId);
-            codeTextarea.value = code;
+        // Hide retry button
+        const retryBtn = document.getElementById('retryConnectionBtn');
+        if (retryBtn) {
+            retryBtn.style.display = 'none';
         }
     }
 
     /**
      * Get the Apps Script code that users need to deploy
+     * @deprecated Template approach: script is pre-embedded in the Google Sheets template.
      */
-    getAppsScriptCode(spreadsheetId = 'YOUR_SPREADSHEET_ID') {
-        return `var SPREADSHEET_ID = '${spreadsheetId}';
+    getAppsScriptCode() {
+        return `// No hardcoded ID needed — this script is bound to the spreadsheet it lives in.
 
 function doPost(e) {
   try {
-    // Get the spreadsheet by ID
-    var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    // Always operate on the spreadsheet this script is bound to
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = spreadsheet.getActiveSheet();
     
     // Parse the incoming data
@@ -488,8 +472,8 @@ function handleDeleteTransaction(sheet, data) {
 
 function doGet(e) {
   try {
-    // Get the spreadsheet by ID
-    var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    // Always operate on the spreadsheet this script is bound to
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = spreadsheet.getActiveSheet();
     
     // Ensure headers exist
@@ -828,7 +812,7 @@ function getDayOfWeek(dateValue) {
 
 function testConnection(callback) {
   try {
-    var spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = spreadsheet.getActiveSheet();
     setupHeaders(sheet);
     
@@ -987,10 +971,6 @@ function testConnection(callback) {
                 document.getElementById(`onboardingStep${this.currentStep}`).classList.add('active');
                 this.updateProgressBar();
                 
-                // Load Apps Script code when entering step 2
-                if (this.currentStep === 2) {
-                    this.loadAppsScriptCode();
-                }
             }
         }
     }
@@ -1061,17 +1041,12 @@ function testConnection(callback) {
      */
     validateStep2() {
         const scriptURL = document.getElementById('onboardingScriptURL')?.value.trim() || '';
-        
-        // Update tab navigation buttons
-        const tab1Next = document.querySelector('#scriptTab .tab-next');
-        
         const hasScriptURL = scriptURL.includes('script.google.com') && scriptURL.includes('/macros/');
-        
-        if (tab1Next) tab1Next.disabled = !hasScriptURL;
-        
-        // Note: step2ContinueBtn should only be enabled after successful connection test
-        // This is handled in the testConnection function
-        
+
+        // Enable continue button as soon as a valid URL is entered
+        const continueBtn = document.getElementById('step2ContinueBtn');
+        if (continueBtn) continueBtn.disabled = !hasScriptURL;
+
         return hasScriptURL;
     }
 
@@ -1537,109 +1512,97 @@ function showSetupTab(tabName) {
     document.querySelectorAll('.setup-tab').forEach(tab => {
         tab.classList.remove('active');
     });
-    
+
     // Remove active class from all tab buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     // Show selected tab and activate button
     const targetTab = document.getElementById(tabName + 'Tab');
     const targetBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
-    
+
     if (targetTab) targetTab.classList.add('active');
     if (targetBtn) targetBtn.classList.add('active');
-}
-
-/**
- * Copy Apps Script code to clipboard
- */
-function copyAppsScript() {
-    const codeTextarea = document.getElementById('appsScriptCode');
-    
-    if (codeTextarea) {
-        codeTextarea.select();
-        document.execCommand('copy');
-        
-        const copyBtn = document.querySelector('.copy-btn');
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = '✅ Copied!';
-        
-        setTimeout(() => {
-            copyBtn.textContent = originalText;
-        }, 2000);
-        
-        // Show success message
-        const message = document.createElement('div');
-        message.className = 'copy-success-message';
-        message.innerHTML = '✅ Personalized code copied with your Spreadsheet ID!';
-        document.querySelector('.code-container').appendChild(message);
-        
-        setTimeout(() => {
-            if (message.parentNode) {
-                message.parentNode.removeChild(message);
-            }
-        }, 3000);
-    }
 }
 
 /**
  * Test connection to the spreadsheet and Apps Script
  */
 function testConnection() {
-    const spreadsheetId = document.getElementById('onboardingSpreadsheetId').value.trim();
     const scriptURL = document.getElementById('onboardingScriptURL').value.trim();
+    const spreadsheetId = document.getElementById('onboardingSpreadsheetId').value.trim();
     const resultDiv = document.getElementById('connectionTest');
     const continueBtn = document.getElementById('step2ContinueBtn');
-    
+    const retryBtn = document.getElementById('retryConnectionBtn');
+
+    if (retryBtn) retryBtn.style.display = 'none';
+
     if (!spreadsheetId || !scriptURL) {
+        resultDiv.style.display = 'block';
         resultDiv.className = 'connection-result error';
         resultDiv.textContent = I18n.t('onboarding.step2.testMissing');
+        if (retryBtn) retryBtn.style.display = 'inline-block';
         return;
     }
-    
+
+    // Show spinner
+    resultDiv.style.display = 'flex';
     resultDiv.className = 'connection-result testing';
-    resultDiv.innerHTML = '🔍 ' + I18n.t('onboarding.step2.testing');
-    
+    resultDiv.innerHTML = '<span class="connection-spinner"></span> ' + I18n.t('onboarding.step2.testing');
+
     // Test the connection by making a simple GET request
     const testScript = document.createElement('script');
     const callbackName = 'connectionTest_' + Date.now();
-    
+
     window[callbackName] = function(response) {
         document.head.removeChild(testScript);
         delete window[callbackName];
-        
+
         if (response && (Array.isArray(response) || response.status !== 'error')) {
+            resultDiv.style.display = 'block';
             resultDiv.className = 'connection-result success';
             resultDiv.innerHTML = '✅ ' + I18n.t('onboarding.step2.testSuccess');
             continueBtn.disabled = false;
+            // Auto-advance after showing success briefly
+            setTimeout(() => {
+                if (window.onboardingManager) {
+                    window.onboardingManager.nextStep();
+                }
+            }, 1500);
         } else {
+            resultDiv.style.display = 'block';
             resultDiv.className = 'connection-result error';
             resultDiv.innerHTML = '❌ ' + I18n.t('onboarding.step2.testFailed');
             continueBtn.disabled = true;
+            if (retryBtn) retryBtn.style.display = 'inline-block';
         }
     };
-    
+
     // Handle timeout
     setTimeout(() => {
         if (window[callbackName]) {
             document.head.removeChild(testScript);
             delete window[callbackName];
+            resultDiv.style.display = 'block';
             resultDiv.className = 'connection-result error';
             resultDiv.innerHTML = '❌ ' + I18n.t('onboarding.step2.testTimeout');
             continueBtn.disabled = true;
+            if (retryBtn) retryBtn.style.display = 'inline-block';
         }
     }, 10000);
-    
+
     testScript.src = `${scriptURL}?callback=${callbackName}`;
     testScript.onerror = function() {
         document.head.removeChild(testScript);
         delete window[callbackName];
+        resultDiv.style.display = 'block';
         resultDiv.className = 'connection-result error';
         resultDiv.innerHTML = '❌ ' + I18n.t('onboarding.step2.testError');
         continueBtn.disabled = true;
+        if (retryBtn) retryBtn.style.display = 'inline-block';
     };
-    
+
     document.head.appendChild(testScript);
 }
 

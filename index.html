@@ -58,20 +58,20 @@
                     </div>
                     
                     <div class="onboarding-form">
-                        <h3 data-i18n="onboarding.step1.title">First, let's connect to your Google Spreadsheet</h3>
-                        <p data-i18n="onboarding.step1.instructions">Go to <a href="https://sheets.google.com" target="_blank">Google Sheets</a>, create a new spreadsheet, and copy its ID from the URL.</p>
-                        
-                        <div class="example-box">
-                            <strong data-i18n="onboarding.step1.example">Example URL:</strong><br>
-                            <code>https://docs.google.com/spreadsheets/d/<span class="highlight">1oqS9MSo3XVw95jNPX-Lz0um-ookdlbM4uWzDtWyL3bU</span>/edit</code><br>
-                            <small data-i18n="onboarding.step1.exampleNote">The highlighted part is your Spreadsheet ID</small>
+                        <h3 data-i18n="onboarding.step1.title">Create your spreadsheet from our ready-made template</h3>
+
+                        <div class="template-cta-box">
+                            <p class="template-cta-desc" data-i18n="onboarding.step1.templateDesc">🚀 Everything is pre-configured: sheets, headers, and the Apps Script are all ready to go.</p>
+                            <a href="https://docs.google.com/spreadsheets/d/1mhryRG11GznN_hVCd85KlEXk6alGvG59wYYerqTIbU0/copy"
+                               target="_blank"
+                               class="btn-template"
+                               data-i18n="onboarding.step1.templateBtn">📋 Create My Spreadsheet from Template</a>
                         </div>
-                        
-                        <label data-i18n="onboarding.step1.label">Your Spreadsheet ID *</label>
+
+                        <label data-i18n="onboarding.step1.label">Paste your new Spreadsheet ID here *</label>
                         <input type="text" id="onboardingSpreadsheetId" data-i18n-placeholder="onboarding.step1.placeholder" placeholder="Paste your Spreadsheet ID here" required>
-                        <small data-i18n="onboarding.step1.help">This will be used to connect your app to your spreadsheet</small>
-                        
-                        <button type="button" class="btn-primary" id="step1ContinueBtn" onclick="nextOnboardingStep()" disabled data-i18n="onboarding.step1.continue">Continue to Apps Script Setup →</button>
+
+                        <button type="button" class="btn-primary" id="step1ContinueBtn" onclick="nextOnboardingStep()" disabled data-i18n="onboarding.step1.continue">Continue to Deploy Script →</button>
                     </div>
                 </div>
             </div>
@@ -79,71 +79,30 @@
             <!-- Step 2: Apps Script Setup -->
             <div id="onboardingStep2" class="onboarding-step">
                 <div class="onboarding-content">
-                    <h2 data-i18n="onboarding.step2.title">Setup Apps Script 📊</h2>
-                    <p data-i18n="onboarding.step2.subtitle">Now we'll set up the Google Apps Script to connect your spreadsheet to the app.</p>
-                    
-                    <div class="setup-tabs">
-                        <button type="button" class="tab-btn active" onclick="showSetupTab('script')" data-i18n="onboarding.step2.tab1">
-                            1. Copy & Deploy Script
-                        </button>
-                        <button type="button" class="tab-btn" onclick="showSetupTab('connect')" data-i18n="onboarding.step2.tab2">
-                            2. Test Connection
-                        </button>
-                    </div>
+                    <h2 data-i18n="onboarding.step2.title">Deploy Your Apps Script 🚀</h2>
+                    <p data-i18n="onboarding.step2.subtitle">The script is already inside your spreadsheet copy. You just need to deploy it as a Web App.</p>
 
-                    <!-- Tab 1: Apps Script Setup -->
-                    <div id="scriptTab" class="setup-tab active">
-                        <div class="instruction-card">
-                            <h3 data-i18n="onboarding.step2.scriptTitle">⚙️ Step 1: Copy & Deploy Apps Script</h3>
-                            <ol class="instruction-list">
-                                <li data-i18n="onboarding.step2.instruction1">Go to <a href="https://script.google.com" target="_blank">Google Apps Script</a></li>
-                                <li data-i18n="onboarding.step2.instruction2">Click "New project"</li>
-                                <li data-i18n="onboarding.step2.instruction3">Replace the default code with the code below (it's already customized with your Spreadsheet ID!)</li>
-                            </ol>
-                            
-                            <div class="code-container">
-                                <div class="code-header">
-                                    <span data-i18n="onboarding.step2.codeHeader">Apps Script Code (Personalized for Your Spreadsheet)</span>
-                                    <button type="button" class="copy-btn" onclick="copyAppsScript()" data-i18n="onboarding.step2.copyCode">📋 Copy Code</button>
-                                </div>
-                                <textarea id="appsScriptCode" readonly class="code-textarea"></textarea>
-                            </div>
+                    <div class="instruction-card">
+                        <p data-i18n="onboarding.step2.scriptDesc" style="margin-bottom: 12px;">Your spreadsheet copy already contains the Apps Script. Follow these steps to publish it:</p>
+                        <ol class="instruction-list">
+                            <li data-i18n="onboarding.step2.instruction1">In the top menu of your spreadsheet click <strong>Extensions</strong> → <strong>Apps Script</strong></li>
+                            <li data-i18n="onboarding.step2.instruction2">Click the blue <strong>Deploy</strong> button (top-right) → <strong>New deployment</strong></li>
+                            <li data-i18n="onboarding.step2.instruction3">Set <strong>"Execute as"</strong> → <strong>Me</strong></li>
+                            <li data-i18n="onboarding.step2.instruction4">Set <strong>"Who has access"</strong> → <strong>Anyone</strong></li>
+                            <li data-i18n="onboarding.step2.instruction5">Click <strong>Deploy</strong> → if prompted click <strong>Authorize access</strong> and follow the sign-in steps</li>
+                            <li data-i18n="onboarding.step2.instruction6">Copy the <strong>Web App URL</strong> displayed and paste it in the field below</li>
+                        </ol>
 
-                            <ol class="instruction-list" start="4">
-                                <li data-i18n="onboarding.step2.instruction4">Paste the code into your Apps Script editor</li>
-                                <li data-i18n="onboarding.step2.instruction5">Click "Save" (💾)</li>
-                                <li data-i18n="onboarding.step2.instruction6">Click "Deploy" → "New deployment"</li>
-                                <li data-i18n="onboarding.step2.instruction7">Choose "Web app" as the type</li>
-                                <li data-i18n="onboarding.step2.instruction8">Set "Execute as" to "Me"</li>
-                                <li data-i18n="onboarding.step2.instruction9">Set "Who has access" to "Anyone"</li>
-                                <li data-i18n="onboarding.step2.instruction10">Click "Deploy" and copy the Web App URL</li>
-                            </ol>
+                        <label data-i18n="onboarding.step2.scriptURL">Apps Script Web App URL:</label>
+                        <input type="text" id="onboardingScriptURL" data-i18n-placeholder="onboarding.step2.scriptURLPlaceholder" placeholder="Paste your Web App URL here" required>
+                        <small data-i18n="onboarding.step2.scriptURLHelp">Should look like: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec</small>
 
-                            <label data-i18n="onboarding.step2.scriptURL">Apps Script Web App URL:</label>
-                            <input type="text" id="onboardingScriptURL" data-i18n-placeholder="onboarding.step2.scriptURLPlaceholder" placeholder="Paste your Web App URL here" required>
-                            <small data-i18n="onboarding.step2.scriptURLHelp">Should look like: https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec</small>
-                            
-                            <button type="button" class="btn-primary tab-next" onclick="showSetupTab('connect')" disabled data-i18n="onboarding.step2.nextConnect">Next: Test Connection →</button>
-                        </div>
-                    </div>
+                        <div id="connectionTest" class="connection-result" style="display:none; margin-top: 15px;"></div>
+                        <button type="button" id="retryConnectionBtn" class="btn-secondary" onclick="testConnection()" style="display:none; margin-top: 10px;" data-i18n="onboarding.step2.retryButton">🔄 Retry</button>
 
-                    <!-- Tab 2: Connect -->
-                    <div id="connectTab" class="setup-tab">
-                        <div class="instruction-card">
-                            <h3 data-i18n="onboarding.step2.testTitle">🔗 Step 2: Test Connection</h3>
-                            <p data-i18n="onboarding.step2.testSubtitle">Let's make sure everything is working correctly.</p>
-                            
-                            <div class="connection-status">
-                                <div id="connectionTest" class="connection-result">
-                                    <span data-i18n="onboarding.step2.testMessage">Click "Test Connection" to verify your setup</span>
-                                </div>
-                                <button type="button" class="btn-primary" onclick="testConnection()" data-i18n="onboarding.step2.testButton">🔍 Test Connection</button>
-                            </div>
-                            
-                            <div class="tab-buttons">
-                                <button type="button" class="btn-secondary" onclick="showSetupTab('script')" data-i18n="onboarding.step2.back">← Back</button>
-                                <button type="button" class="btn-primary" id="step2ContinueBtn" onclick="nextOnboardingStep()" disabled data-i18n="onboarding.step2.continue">Continue to Accounts →</button>
-                            </div>
+                        <div class="onboarding-buttons" style="margin-top: 20px;">
+                            <button type="button" class="btn-secondary" onclick="prevOnboardingStep()" data-i18n="onboarding.step2.back">Back</button>
+                            <button type="button" class="btn-primary" id="step2ContinueBtn" onclick="testConnection()" disabled data-i18n="onboarding.step2.continue">Continue to Accounts →</button>
                         </div>
                     </div>
                 </div>
