@@ -58,8 +58,6 @@
                     </div>
                     
                     <div class="onboarding-form">
-                        <h3 data-i18n="onboarding.step1.title">Create your spreadsheet from our ready-made template</h3>
-
                         <div class="template-cta-box">
                             <p class="template-cta-desc" data-i18n="onboarding.step1.templateDesc">🚀 Everything is pre-configured: sheets, headers, and the Apps Script are all ready to go.</p>
                             <a href="https://docs.google.com/spreadsheets/d/1mhryRG11GznN_hVCd85KlEXk6alGvG59wYYerqTIbU0/copy"
@@ -68,8 +66,7 @@
                                data-i18n="onboarding.step1.templateBtn">📋 Create My Spreadsheet from Template</a>
                         </div>
 
-                        <label data-i18n="onboarding.step1.label">Paste your new Spreadsheet ID here *</label>
-                        <input type="text" id="onboardingSpreadsheetId" data-i18n-placeholder="onboarding.step1.placeholder" placeholder="Paste your Spreadsheet ID here" required>
+                        <input type="text" id="onboardingSpreadsheetId" data-i18n-placeholder="onboarding.step1.placeholder" placeholder="Paste Spreadsheet ID or full Google Sheets URL" required>
 
                         <button type="button" class="btn-primary" id="step1ContinueBtn" onclick="nextOnboardingStep()" disabled data-i18n="onboarding.step1.continue">Continue to Deploy Script →</button>
                     </div>
@@ -80,7 +77,6 @@
             <div id="onboardingStep2" class="onboarding-step">
                 <div class="onboarding-content">
                     <h2 data-i18n="onboarding.step2.title">Deploy Your Apps Script 🚀</h2>
-                    <p data-i18n="onboarding.step2.subtitle">The script is already inside your spreadsheet copy. You just need to deploy it as a Web App.</p>
 
                     <div class="instruction-card">
                         <p data-i18n="onboarding.step2.scriptDesc" style="margin-bottom: 12px;">Your spreadsheet copy already contains the Apps Script. Follow these steps to publish it:</p>
@@ -112,7 +108,6 @@
             <div id="onboardingStep3" class="onboarding-step">
                 <div class="onboarding-content">
                     <h2 data-i18n="onboarding.step3.title">Set Up Your Accounts 🏦</h2>
-                    <p data-i18n="onboarding.step3.subtitle">Add the accounts you'll be tracking (checking, savings, credit cards, etc.)</p>
                     
                     <div class="accounts-section">
                         <div class="input-with-button">
@@ -380,8 +375,10 @@
                 <button type="button" id="thisYearBtn" class="quick-filter-btn" data-i18n="charts.thisYear">This Year</button>
             </div>
 
-            <button type="button" id="applyFilterBtn" class="filter-btn" data-i18n="charts.applyFilter">Apply Filter</button>
-            <button type="button" id="refreshChartsBtn" class="filter-btn" onclick="retryLoadCharts()" data-i18n="charts.refreshData">🔄 Refresh Data</button>
+            <div class="filter-actions">
+                <button type="button" id="applyFilterBtn" class="filter-btn" data-i18n="charts.applyFilter">Apply Filter</button>
+                <button type="button" id="refreshChartsBtn" class="filter-btn" onclick="retryLoadCharts()" data-i18n="charts.refreshData">🔄 Refresh Data</button>
+            </div>
         </div>
 
         <div class="charts-container">

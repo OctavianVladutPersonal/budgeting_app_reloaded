@@ -778,6 +778,11 @@ body[data-theme="dark"] .feature-tip {
     font-size: 1.3em;
 }
 
+.instruction-card small {
+    overflow-wrap: break-word;
+    word-break: break-all;
+}
+
 .instruction-list {
     text-align: left;
     padding-left: 20px;
@@ -2050,14 +2055,16 @@ button:active {
     background: #f0f0f0;
 }
 
-#dayOfWeek {
-    background: #eee;
+#dayOfWeek,
+#editDayOfWeek {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 #category:disabled {
-    background: #eee;
+    background: var(--bg-tertiary);
     cursor: not-allowed;
-    color: #666;
+    color: var(--text-muted);
 }
 
 #submitBtn.sticky-submit-btn {
@@ -2238,10 +2245,11 @@ button:active {
 }
 
 .chart-filters {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--card-bg);
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
     margin-bottom: 30px;
     max-width: 1200px;
     margin-left: auto;
@@ -2269,14 +2277,14 @@ button:active {
     margin: 0;
     font-weight: 600;
     font-size: 13px;
-    color: #f0f0f0;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .date-input-group input[type="date"] {
     padding: 10px 12px;
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     font-size: 14px;
     background: var(--input-bg);
@@ -2288,7 +2296,7 @@ button:active {
 
 .date-input-group input[type="date"]:focus {
     outline: none;
-    border-color: rgba(255, 255, 255, 0.8);
+    border-color: #28a745;
     background: var(--input-bg);
 }
 
@@ -2302,9 +2310,9 @@ button:active {
     flex: 1;
     min-width: 90px;
     padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.4);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
     font-size: 12px;
@@ -2315,22 +2323,27 @@ button:active {
 }
 
 .quick-filter-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
-    border-color: rgba(255, 255, 255, 0.6);
+    background: var(--border-light);
+    border-color: #28a745;
     transform: translateY(-2px);
 }
 
 .quick-filter-btn:active {
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--border-color);
     transform: translateY(0);
 }
 
+.filter-actions {
+    display: flex;
+    gap: 10px;
+}
+
 .filter-btn {
-    width: 100%;
+    flex: 1;
     margin: 0;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.95);
-    color: #667eea;
+    padding: 10px 16px;
+    background: #28a745;
+    color: white;
     border: none;
     border-radius: 8px;
     cursor: pointer;
@@ -2339,13 +2352,13 @@ button:active {
     transition: all 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-sm);
 }
 
 .filter-btn:hover {
-    background: white;
+    background: #218838;
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-md);
 }
 
 .filter-btn:active {
@@ -2405,19 +2418,21 @@ button:active {
     }
 
     .chart-filters {
-        flex-direction: column;
-        padding: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px 8px;
+        padding: 14px;
         margin-bottom: 20px;
         margin-left: -20px;
         margin-right: -20px;
         border-radius: 0;
-        gap: 0;
     }
 
     .filter-dates {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
     }
 
     .date-input-group {
@@ -2428,37 +2443,40 @@ button:active {
 
     .date-input-group label {
         font-size: 12px;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
     }
 
     .date-input-group input[type="date"] {
         width: 100%;
         box-sizing: border-box;
-        padding: 10px;
-        font-size: 16px;
+        padding: 10px 8px;
+        font-size: 15px;
         min-height: 44px;
     }
 
     .quick-filters {
-        width: 100%;
-        gap: 8px;
-        margin-top: 0;
-        flex-direction: column;
+        display: contents;
     }
 
     .quick-filter-btn {
         width: 100%;
         min-width: auto;
         min-height: 44px;
-        padding: 12px;
-        font-size: 13px;
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+
+    .filter-actions {
+        display: contents;
     }
 
     .filter-btn {
         width: 100%;
-        padding: 14px;
-        font-size: 14px;
+        box-sizing: border-box;
+        padding: 10px 8px;
+        font-size: 12px;
         min-height: 44px;
+        box-shadow: none;
     }
 
     .charts-container {

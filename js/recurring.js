@@ -325,9 +325,9 @@ class RecurringTransactions {
             status,
             formattedAmount: parseFloat(transaction.amount).toFixed(2),
             frequencyText: this.getFrequencyText(transaction.frequency),
-            nextDueFormatted: transaction.nextDue ? new Date(transaction.nextDue).toLocaleDateString() : 'N/A',
-            startDateFormatted: new Date(transaction.startDate).toLocaleDateString(),
-            endDateFormatted: transaction.endDate ? new Date(transaction.endDate).toLocaleDateString() : null
+            nextDueFormatted: transaction.nextDue ? new Date(transaction.nextDue + 'T00:00:00').toLocaleDateString() : 'N/A',
+            startDateFormatted: new Date(transaction.startDate + 'T00:00:00').toLocaleDateString(),
+            endDateFormatted: transaction.endDate ? new Date(transaction.endDate + 'T00:00:00').toLocaleDateString() : null
         };
     }
 }
@@ -389,6 +389,7 @@ class RecurringUI {
         if (startDateInput) {
             startDateInput.addEventListener('change', () => {
                 this.validateStartEndDates('recurringStartDate', 'recurringEndDate');
+                this.updateRecurringDescription();
                 this.updateNextDueDate();
             });
         }
@@ -398,6 +399,7 @@ class RecurringUI {
         if (endDateInput) {
             endDateInput.addEventListener('change', () => {
                 this.validateStartEndDates('recurringStartDate', 'recurringEndDate');
+                this.updateRecurringDescription();
                 this.updateNextDueDate();
             });
         }
@@ -506,8 +508,8 @@ class RecurringUI {
         }
         
         const frequencyText = RecurringTransactions.getFrequencyText(frequency).toLowerCase();
-        const startDateFormatted = new Date(startDate).toLocaleDateString();
-        const endDateText = endDate ? ` until ${new Date(endDate).toLocaleDateString()}` : '';
+        const startDateFormatted = new Date(startDate + 'T00:00:00').toLocaleDateString();
+        const endDateText = endDate ? ` until ${new Date(endDate + 'T00:00:00').toLocaleDateString()}` : '';
         
         descElement.textContent = `This transaction will repeat ${frequencyText} starting ${startDateFormatted}${endDateText}.`;
         

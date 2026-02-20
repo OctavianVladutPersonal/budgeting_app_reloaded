@@ -1015,8 +1015,21 @@ function testConnection(callback) {
     /**
      * Validate step 1 (Spreadsheet ID)
      */
+    /**
+     * Extract the spreadsheet ID from a full Google Sheets URL or a bare ID.
+     * Supports:
+     *   - Full URL: https://docs.google.com/spreadsheets/d/ID/edit
+     *   - Bare ID: 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms
+     */
+    extractSpreadsheetId(input) {
+        if (!input) return '';
+        const match = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        return match ? match[1] : input;
+    }
+
     validateStep1() {
-        const spreadsheetId = document.getElementById('onboardingSpreadsheetId')?.value.trim() || '';
+        const raw = document.getElementById('onboardingSpreadsheetId')?.value.trim() || '';
+        const spreadsheetId = this.extractSpreadsheetId(raw);
         const continueBtn = document.getElementById('step1ContinueBtn');
         
         const isValid = spreadsheetId.length >= 40;
@@ -1025,7 +1038,7 @@ function testConnection(callback) {
             continueBtn.disabled = !isValid;
         }
         
-        if (!isValid && spreadsheetId) {
+        if (!isValid && raw) {
             if (spreadsheetId.length < 40) {
                 this.showFieldError('onboardingSpreadsheetId', 'Spreadsheet ID seems too short');
             }
@@ -1108,7 +1121,7 @@ function testConnection(callback) {
         switch (this.currentStep) {
             case 1:
                 // Save spreadsheet ID and language from step 1
-                const spreadsheetId = document.getElementById('onboardingSpreadsheetId').value.trim();
+                const spreadsheetId = this.extractSpreadsheetId(document.getElementById('onboardingSpreadsheetId').value.trim());
                 this.config.spreadsheetId = spreadsheetId;
                 this.config.spreadsheetURL = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
                 
