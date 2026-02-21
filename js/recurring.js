@@ -350,7 +350,8 @@ class RecurringUI {
     }
     
     /**
-     * Automatically process due transactions without user interaction
+     * Automatically process due and overdue transactions without user interaction.
+     * Always refreshes the list at the end so callers don't need a separate load.
      */
     static async autoProcessDueTransactions() {
         try {
@@ -358,12 +359,15 @@ class RecurringUI {
             
             if (dueTransactions.length > 0) {
                 await RecurringProcessor.processAllDue(true); // true for silent mode
-                
-                // Refresh the UI data after processing
-                await this.loadRecurringList(true); // force refresh
             }
         } catch (error) {
             console.error('Error in auto-processing due transactions:', error);
+        } finally {
+            // Always refresh the UI so the list reflects the latest state,
+            // whether or not any processing occurred
+            if (document.getElementById('recurringTransactionsBody')) {
+                await this.loadRecurringList(true); // force-bypass cache
+            }
         }
     }
     
@@ -1090,12 +1094,14 @@ class RecurringProcessor {
             return false;
         }
         
-        const today = new Date().toISOString().split('T')[0];
-        const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        // Use the original due date so the transaction is recorded on the day it was
+        // supposed to occur, even when processed late (e.g. app opened the next day)
+        const transactionDate = recurringTransaction.nextDue;
+        const dayOfWeek = new Date(transactionDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
         
         const payload = {
             operation: 'add',
-            date: today,
+            date: transactionDate,
             dayOfWeek: dayOfWeek,
             type: recurringTransaction.type,
             amount: parseFloat(recurringTransaction.amount),
@@ -1313,8 +1319,8 @@ function showErrorMessage(message = 'An error occurred. Please try again.') {
 
 // Auto-initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Only initialize if recurring UI elements exist
-    if (document.getElementById('recurringList')) {
+    // Only initialize if the recurring transactions table is present in the DOM
+    if (document.getElementById('recurringTransactionsBody')) {
         RecurringUI.init();
     }
 });

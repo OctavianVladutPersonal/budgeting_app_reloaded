@@ -92,6 +92,15 @@ function initializeMainApp() {
     setupStickyButton();
     setupObfuscateButton();
     setupEditModalListeners();
+
+    // Process any due or overdue recurring transactions on every app open,
+    // regardless of whether the user navigates to the recurring page.
+    // The 2-second delay lets the rest of the page finish initialising first.
+    setTimeout(() => {
+        if (typeof RecurringUI !== 'undefined') {
+            RecurringUI.autoProcessDueTransactions();
+        }
+    }, 2000);
 }
 
 /**

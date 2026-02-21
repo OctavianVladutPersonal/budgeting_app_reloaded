@@ -18,10 +18,10 @@ function navigateTo(page) {
         document.getElementById('homePage').classList.add('active');
     } else if (page === 'recurring') {
         document.getElementById('recurringPage').classList.add('active');
-        // Load all recurring data in a single call
+        // Process any due/overdue transactions first, then refresh the list
         setTimeout(async () => {
             if (typeof RecurringUI !== 'undefined') {
-                await RecurringUI.loadAllRecurringData();
+                await RecurringUI.autoProcessDueTransactions();
             }
         }, 100);
     } else if (page === 'charts') {
