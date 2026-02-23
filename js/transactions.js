@@ -107,18 +107,52 @@ function displayRecentTransactions(transactions) {
     });
     
     tbody.innerHTML = window.currentTransactions.map((transaction, index) => {
-        // Format date to YYYY-MM-DD
+        // Format date to YYYY-MM-DD - try multiple property name variations
+        // Handle malformed property names (e.g., space character " ")
         let formattedDate = '-';
-        if (transaction.Date || transaction.date) {
-            const dateValue = transaction.Date || transaction.date;
-            if (typeof dateValue === 'string' && dateValue.includes('T')) {
-                // ISO format: extract just the date part
-                formattedDate = dateValue.split('T')[0];
+        const dateValue = transaction.Date || transaction.date || transaction.d || transaction.D || transaction[' '];
+        
+        if (dateValue && dateValue !== '') {
+            if (typeof dateValue === 'string') {
+                if (dateValue.includes('T')) {
+                    // ISO format: convert to local date to account for timezone
+                    // Create date object and get the local date
+                    const dateObj = new Date(dateValue);
+                    if (!isNaN(dateObj.getTime())) {
+                        // Use toLocaleDateString to convert to YYYY-MM-DD in local timezone
+                        const year = dateObj.getFullYear();
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        formattedDate = `${year}-${month}-${day}`;
+                    } else {
+                        formattedDate = dateValue;
+                    }
+                } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                    // Already in correct format
+                    formattedDate = dateValue;
+                } else if (dateValue.length > 0) {
+                    // Try to parse and reformat
+                    try {
+                        const parsedDate = new Date(dateValue + 'T00:00:00');
+                        if (!isNaN(parsedDate.getTime())) {
+                            const year = parsedDate.getFullYear();
+                            const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+                            const day = String(parsedDate.getDate()).padStart(2, '0');
+                            formattedDate = `${year}-${month}-${day}`;
+                        } else {
+                            formattedDate = dateValue;
+                        }
+                    } catch(e) {
+                        formattedDate = dateValue;
+                    }
+                }
             } else if (typeof dateValue === 'number') {
-                // Timestamp: convert to date
-                formattedDate = new Date(dateValue).toISOString().split('T')[0];
-            } else {
-                formattedDate = dateValue;
+                // Timestamp: convert to local date
+                const dateObj = new Date(dateValue);
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                formattedDate = `${year}-${month}-${day}`;
             }
         }
         

@@ -199,7 +199,18 @@ class RecurringTransactions {
             }
         }
         
+        // Pass all required fields to avoid data corruption
+        // Only update nextDue and lastProcessed, preserving all other fields
         const updateResult = await this.update(id, {
+            amount: transaction.amount,
+            payee: transaction.payee,
+            category: transaction.category,
+            notes: transaction.notes || '',
+            account: transaction.account,
+            type: transaction.type,
+            frequency: transaction.frequency,
+            startDate: transaction.startDate,
+            endDate: transaction.endDate || '',
             lastProcessed: new Date().toISOString(),
             nextDue: nextDue
         });
@@ -531,12 +542,14 @@ class RecurringUI {
         const nextDueDateInput = document.getElementById('nextDueDate');
         
         if (frequency && startDate) {
-            let nextDue = RecurringTransactions.calculateNextDueDate(startDate, frequency);
+            // nextDue should equal startDate so the transaction is processed on its first occurrence
+            let nextDue = startDate;
             
-            // If end date is set, ensure next due date doesn't exceed it
+            // If end date is set, ensure start date doesn't exceed it
             if (endDate && nextDue > endDate) {
-                // Calculate the last valid occurrence before or on the end date
-                nextDue = this.calculateLastValidDueDateBeforeEndDate(startDate, frequency, endDate);
+                // If start date is after end date, that's an invalid configuration
+                // Set nextDue to empty to indicate this invalid state
+                nextDue = '';
             }
             
             nextDueDateInput.value = nextDue;

@@ -145,32 +145,7 @@ async function handleRecurringTransactionSubmit() {
                     DataCache.clearChartCache();
                 }
                 
-                try {
-                    const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-                    
-                    const immediatePayload = {
-                        operation: 'add',
-                        date: today,
-                        dayOfWeek: dayOfWeek,
-                        type: transaction.type,
-                        amount: transaction.amount,
-                        category: transaction.category,
-                        account: transaction.account,
-                        payee: transaction.payee,
-                        notes: `${transaction.notes ? transaction.notes + ' - ' : ''}Recurring ${RecurringTransactions.getFrequencyText(frequency).toLowerCase()}`
-                    };
-                    
-                    await fetch(window.CONFIG.scriptURL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        body: JSON.stringify(immediatePayload)
-                    });
-                    
-                    message = 'Recurring transaction created and first payment processed!';
-                } catch (error) {
-                    console.error('Error processing immediate transaction:', error);
-                    message = 'Recurring transaction created, but failed to process first payment.';
-                }
+                message = 'Recurring transaction created and will be processed!';
             }
             
             showSuccessCheckmark(message);

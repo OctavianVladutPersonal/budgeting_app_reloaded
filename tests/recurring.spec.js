@@ -2,7 +2,7 @@
 const { test, expect } = require('@playwright/test');
 const { seedCompletedOnboarding } = require('./fixtures');
 const selectors = require('./selectors');
-const { toBeVisible, toBeHidden, check, getAllTextContents } = require('./helpers');
+const { toBeVisible, toBeHidden, check, getAllTextContents, fill, selectOption, getValue } = require('./helpers');
 
 test.describe('Recurring Transactions Page', () => {
     test.beforeEach(async ({ page }) => {
@@ -64,6 +64,32 @@ test.describe('Recurring Transaction Modal (from Home Form)', () => {
     test('next due date is read-only', async ({ page }) => {
         await check(page, selectors.isRecurring);
         await expect(page.locator(selectors.nextDueDate)).toHaveAttribute('readonly', '');
+    });
+
+    test('next due date equals start date when set to tomorrow with weekly frequency', async ({ page }) => {
+        // Get tomorrow's date
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        // Check recurring checkbox to show recurring fields
+        await check(page, selectors.isRecurring);
+        
+        // Fill in required fields
+        await fill(page, selectors.amount, '25.00');
+        await fill(page, selectors.payee, 'Test Payee');
+        await selectOption(page, selectors.type, 'Expense');
+        
+        // Set start date to tomorrow
+        await fill(page, selectors.recurringStartDate, tomorrowStr);
+        
+        // Select weekly frequency
+        await selectOption(page, selectors.frequency, 'weekly');
+        
+        // Get the nextDueDate value - should equal the start date (tomorrow)
+        const nextDueValue = await getValue(page, selectors.nextDueDate);
+        expect(nextDueValue).toBe(tomorrowStr);
     });
 });
 

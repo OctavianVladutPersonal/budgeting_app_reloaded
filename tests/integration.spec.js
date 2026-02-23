@@ -1121,3 +1121,569 @@ test.describe('Integration: Recurring transaction processing', () => {
         await toContainText(page, selectors.recurringTransactionsBody, 'Due Tomorrow');
     });
 });
+
+// ---------------------------------------------------------------------------
+// Suite 8: Process recurring transaction with today's start date + Data preservation
+// ---------------------------------------------------------------------------
+
+test.describe('Integration: Recurring transaction processing with today start date', () => {
+    test('recurring transaction with today start date is processed and data preserved', async ({ page }) => {
+        await seedCompletedOnboarding(page);
+
+        const today = new Date().toISOString().split('T')[0];
+
+        // Create a recurring transaction due today
+        const recurringTx = {
+            id: 'rec_today_' + Date.now(),
+            payee: 'Today Recurring Payment',
+            category: 'Entertainment',
+            amount: 75.50,
+            type: 'Expense',
+            account: 'Ale',
+            frequency: 'weekly',
+            startDate: today,
+            endDate: null,
+            nextDue: today,
+            notes: 'Test payment due today'
+        };
+
+        // Also prepare a processed transaction response (what should be returned after processing)
+        const processedTx = {
+            date: today + 'T00:00:00.000Z', // ISO format with timezone
+            dayOfWeek: new Date(today + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
+            type: 'Expense',
+            amount: 75.50,
+            category: 'Entertainment',
+            account: 'Ale',
+            payee: 'Today Recurring Payment',
+            notes: 'Test payment due today - Recurring weekly',
+            rowIndex: 2
+        };
+
+        // Mock the API to return the recurring transaction initially, then the processed transaction
+        const transactions = [processedTx];
+        const recurringTransactions = [recurringTx];
+
+        await page.route('**/script.google.com/**', async (route) => {
+            const url = route.request().url();
+            const callbackMatch = url.match(/[?&]callback=([^&]+)/);
+            const body = route.request().postData();
+
+            if (callbackMatch) {
+                const cbName = callbackMatch[1];
+                const data = url.includes('getRecurringTransactions')
+                    ? { recurringTransactions }
+                    : { transactions };
+                await route.fulfill({
+                    contentType: 'application/javascript',
+                    body: `${cbName}(${JSON.stringify(data)})`
+                });
+            } else if (body) {
+                // POST request - acknowledge it
+                await route.fulfill({ status: 200, body: '' });
+            } else {
+                await route.fulfill({ status: 200, body: '' });
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForSelector(selectors.homePageActive, { timeout: 10000 });
+
+        // Wait for auto-processing to complete
+        await page.waitForTimeout(3000);
+
+        // Verify the transaction appears in the transactions table with correct date
+        const tableRows = await page.locator(selectors.transactionsBodyRows);
+        await expect(tableRows).toHaveCount(1, { timeout: 5000 });
+
+        // Check that the date is displayed correctly (should be today, not yesterday)
+        const firstRow = page.locator(selectors.transactionsBodyRows).first();
+        const rowText = await firstRow.textContent();
+        
+        // Extract the date from the row (first column is date)
+        const cells = await firstRow.locator('td').allTextContents();
+        const displayedDate = cells[0];
+
+        // Verify the date is today's date
+        expect(displayedDate).toBe(today);
+
+        // Verify other data is not corrupted
+        expect(rowText).toContain('Today Recurring Payment');
+        expect(rowText).toContain('75.50');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Suite 9: Transaction date display with timezone correctness
+// ---------------------------------------------------------------------------
+
+test.describe('Integration: Transaction date display timezone handling', () => {
+    test('transaction date displays correctly in local timezone', async ({ page }) => {
+        await seedCompletedOnboarding(page);
+
+        const testDate = '2026-02-23';
+        
+        const testTransaction = {
+            date: testDate + 'T12:00:00.000Z', // UTC noon
+            dayOfWeek: 'Tuesday',
+            type: 'Expense',
+            amount: 50.00,
+            category: 'Groceries',
+            account: 'Ale',
+            payee: 'Test Market',
+            notes: 'Test transaction',
+            rowIndex: 2
+        };
+
+        await page.route('**/script.google.com/**', async (route) => {
+            const url = route.request().url();
+            const callbackMatch = url.match(/[?&]callback=([^&]+)/);
+
+            if (callbackMatch) {
+                const cbName = callbackMatch[1];
+                const data = url.includes('getRecurringTransactions')
+                    ? { recurringTransactions: [] }
+                    : { transactions: [testTransaction] };
+                await route.fulfill({
+                    contentType: 'application/javascript',
+                    body: `${cbName}(${JSON.stringify(data)})`
+                });
+            } else {
+                await route.fulfill({ status: 200, body: '' });
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForSelector(selectors.homePageActive, { timeout: 10000 });
+
+        // Get the displayed date from the transactions table
+        const firstRow = page.locator(selectors.transactionsBodyRows).first();
+        const cells = await firstRow.locator('td').allTextContents();
+        const displayedDate = cells[0];
+
+        // The displayed date should match the test date, regardless of UTC time
+        expect(displayedDate).toBe(testDate);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Suite 10: Charts page with malformed date property handling
+// ---------------------------------------------------------------------------
+
+test.describe('Integration: Charts page with malformed date properties', () => {
+    test('charts display data when transactions have space-character date properties', async ({ page }) => {
+        await seedCompletedOnboarding(page);
+
+        // Create transactions with malformed space-character date property (" " instead of "date")
+        // This simulates the real-world API response that was causing charts not to display
+        const transactionsWithMalformedDate = [
+            {
+                ' ': '2026-02-15T10:00:00.000Z', // Malformed space character date property
+                dayOfWeek: 'Sunday',
+                type: 'Expense',
+                amount: 50,
+                category: 'Groceries',
+                account: 'Ale',
+                payee: 'Supermarket',
+                notes: 'Weekly shopping',
+                rowIndex: 2
+            },
+            {
+                ' ': '2026-02-18T14:30:00.000Z', // Malformed space character date property
+                dayOfWeek: 'Wednesday',
+                type: 'Expense',
+                amount: 75,
+                category: 'Entertainment',
+                account: 'Ale',
+                payee: 'Cinema',
+                notes: 'Movie night',
+                rowIndex: 3
+            },
+            {
+                ' ': '2026-02-20T09:00:00.000Z', // Malformed space character date property
+                dayOfWeek: 'Friday',
+                type: 'Income',
+                amount: 1000,
+                category: 'Account',
+                account: 'Ale',
+                payee: 'Employer',
+                notes: 'Monthly salary',
+                rowIndex: 4
+            }
+        ];
+
+        // Mock the API to return transactions with malformed date properties
+        await page.route('**/script.google.com/**', async (route) => {
+            const url = route.request().url();
+            const callbackMatch = url.match(/[?&]callback=([^&]+)/);
+            
+            if (callbackMatch) {
+                const cbName = callbackMatch[1];
+                const data = url.includes('getRecurringTransactions')
+                    ? { recurringTransactions: [] }
+                    : { transactions: transactionsWithMalformedDate };
+                await route.fulfill({
+                    contentType: 'application/javascript',
+                    body: `${cbName}(${JSON.stringify(data)})`
+                });
+            } else {
+                await route.fulfill({ status: 200, body: '' });
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForSelector(selectors.homePageActive, { timeout: 10000 });
+
+        // Navigate to charts page
+        await page.locator(selectors.chartsNavLink).click();
+        await page.waitForSelector(selectors.chartsPageActive, { timeout: 10000 });
+
+        // Wait for charts to load
+        await page.waitForTimeout(1000);
+
+        // Verify all three chart canvases are present
+        await expect(page.locator(selectors.expensesCategoryChart)).toBeVisible();
+        await expect(page.locator(selectors.expensesVsIncomeChart)).toBeVisible();
+        await expect(page.locator(selectors.expensesCategoryBarChart)).toBeVisible();
+
+        // Verify chart headings are visible
+        await expect(page.locator(selectors.expensesByCategoryHeading)).toBeVisible();
+        await expect(page.locator(selectors.expensesVsIncomeHeading)).toBeVisible();
+        await expect(page.locator(selectors.expensesByRankHeading)).toBeVisible();
+    });
+
+    test('charts display with correct data for current month', async ({ page }) => {
+        await seedCompletedOnboarding(page);
+
+        const transactions = [
+            {
+                ' ': '2026-02-10T10:00:00.000Z',
+                dayOfWeek: 'Monday',
+                type: 'Expense',
+                amount: 100,
+                category: 'Food',
+                account: 'Ale',
+                payee: 'Restaurant',
+                notes: 'Lunch',
+                rowIndex: 2
+            },
+            {
+                ' ': '2026-02-15T14:00:00.000Z',
+                dayOfWeek: 'Saturday',
+                type: 'Expense',
+                amount: 50,
+                category: 'Transport',
+                account: 'Ale',
+                payee: 'Taxi',
+                notes: 'Airport ride',
+                rowIndex: 3
+            },
+            {
+                ' ': '2026-02-20T09:00:00.000Z',
+                dayOfWeek: 'Thursday',
+                type: 'Income',
+                amount: 2000,
+                category: 'Account',
+                account: 'Ale',
+                payee: 'Salary',
+                notes: 'Monthly income',
+                rowIndex: 4
+            }
+        ];
+
+        await page.route('**/script.google.com/**', async (route) => {
+            const url = route.request().url();
+            const callbackMatch = url.match(/[?&]callback=([^&]+)/);
+            
+            if (callbackMatch) {
+                const cbName = callbackMatch[1];
+                const data = url.includes('getRecurringTransactions')
+                    ? { recurringTransactions: [] }
+                    : { transactions };
+                await route.fulfill({
+                    contentType: 'application/javascript',
+                    body: `${cbName}(${JSON.stringify(data)})`
+                });
+            } else {
+                await route.fulfill({ status: 200, body: '' });
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForSelector(selectors.homePageActive, { timeout: 10000 });
+
+        // Navigate to charts
+        await page.locator(selectors.chartsNavLink).click();
+        await page.waitForSelector(selectors.chartsPageActive, { timeout: 10000 });
+        await page.waitForTimeout(1000);
+
+        // Verify charts are displayed (not showing "no data" messages)
+        const chartsContainer = page.locator('.charts-container');
+        const noDataMessages = chartsContainer.locator('.no-data-message');
+        
+        // Should have charts, not no-data messages
+        const chartCount = await page.locator('canvas').count();
+        expect(chartCount).toBeGreaterThan(0);
+    });
+
+    test('charts filter correctly with date range', async ({ page }) => {
+        await seedCompletedOnboarding(page);
+
+        const transactions = [
+            {
+                ' ': '2026-02-01T10:00:00.000Z',
+                dayOfWeek: 'Sunday',
+                type: 'Expense',
+                amount: 100,
+                category: 'Food',
+                account: 'Ale',
+                payee: 'Market',
+                notes: 'Shopping',
+                rowIndex: 2
+            },
+            {
+                ' ': '2026-02-10T10:00:00.000Z',
+                dayOfWeek: 'Tuesday',
+                type: 'Expense',
+                amount: 50,
+                category: 'Transport',
+                account: 'Ale',
+                payee: 'Bus',
+                notes: 'Commute',
+                rowIndex: 3
+            },
+            {
+                ' ': '2026-03-05T10:00:00.000Z', // March - outside February range
+                dayOfWeek: 'Wednesday',
+                type: 'Expense',
+                amount: 75,
+                category: 'Utilities',
+                account: 'Ale',
+                payee: 'Electric',
+                notes: 'Bill',
+                rowIndex: 4
+            }
+        ];
+
+        await page.route('**/script.google.com/**', async (route) => {
+            const url = route.request().url();
+            const callbackMatch = url.match(/[?&]callback=([^&]+)/);
+            
+            if (callbackMatch) {
+                const cbName = callbackMatch[1];
+                const data = url.includes('getRecurringTransactions')
+                    ? { recurringTransactions: [] }
+                    : { transactions };
+                await route.fulfill({
+                    contentType: 'application/javascript',
+                    body: `${cbName}(${JSON.stringify(data)})`
+                });
+            } else {
+                await route.fulfill({ status: 200, body: '' });
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForSelector(selectors.homePageActive, { timeout: 10000 });
+
+        // Navigate to charts
+        await page.locator(selectors.chartsNavLink).click();
+        await page.waitForSelector(selectors.chartsPageActive, { timeout: 10000 });
+        await page.waitForTimeout(1000);
+
+        // By default, should display current month (February)
+        // The March transaction should be filtered out
+        const chartCount = await page.locator('canvas').count();
+        expect(chartCount).toBeGreaterThan(0);
+
+        // Verify filter inputs are populated
+        const startDateInput = page.locator(selectors.chartStartDate);
+        const endDateInput = page.locator(selectors.chartEndDate);
+        
+        const startValue = await startDateInput.inputValue();
+        const endValue = await endDateInput.inputValue();
+        
+        // Should be February range
+        expect(startValue).toContain('2026-02');
+        expect(endValue).toContain('2026-02');
+    });
+
+    test('clicking quick filter buttons updates charts', async ({ page }) => {
+        await seedCompletedOnboarding(page);
+
+        const today = new Date().toISOString().split('T')[0]; // 2026-02-23
+
+        const transactions = [
+            {
+                ' ': today + 'T10:00:00.000Z',
+                dayOfWeek: 'Monday',
+                type: 'Expense',
+                amount: 100,
+                category: 'Food',
+                account: 'Ale',
+                payee: 'Restaurant',
+                notes: 'Lunch',
+                rowIndex: 2
+            },
+            {
+                ' ': today + 'T14:00:00.000Z',
+                dayOfWeek: 'Monday',
+                type: 'Income',
+                amount: 500,
+                category: 'Account',
+                account: 'Ale',
+                payee: 'Freelance',
+                notes: 'Project payment',
+                rowIndex: 3
+            }
+        ];
+
+        await page.route('**/script.google.com/**', async (route) => {
+            const url = route.request().url();
+            const callbackMatch = url.match(/[?&]callback=([^&]+)/);
+            
+            if (callbackMatch) {
+                const cbName = callbackMatch[1];
+                const data = url.includes('getRecurringTransactions')
+                    ? { recurringTransactions: [] }
+                    : { transactions };
+                await route.fulfill({
+                    contentType: 'application/javascript',
+                    body: `${cbName}(${JSON.stringify(data)})`
+                });
+            } else {
+                await route.fulfill({ status: 200, body: '' });
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForSelector(selectors.homePageActive, { timeout: 10000 });
+
+        // Navigate to charts
+        await page.locator(selectors.chartsNavLink).click();
+        await page.waitForSelector(selectors.chartsPageActive, { timeout: 10000 });
+        await page.waitForTimeout(1000);
+
+        // Verify today button exists and is visible
+        const todayBtn = page.locator(selectors.todayBtn);
+        await expect(todayBtn).toBeVisible();
+
+        // Click today button
+        await todayBtn.click();
+        await page.waitForTimeout(500);
+
+        // Verify date inputs changed to today
+        const startDateInput = page.locator(selectors.chartStartDate);
+        const endDateInput = page.locator(selectors.chartEndDate);
+        
+        const startValue = await startDateInput.inputValue();
+        const endValue = await endDateInput.inputValue();
+        
+        expect(startValue).toBe(today);
+        expect(endValue).toBe(today);
+
+        // Charts should still be visible
+        await expect(page.locator(selectors.expensesCategoryChart)).toBeVisible();
+    });
+
+    test('charts filter correctly with timezone-aware date handling', async ({ page }) => {
+        await seedCompletedOnboarding(page);
+
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Create transactions with UTC timestamps that would fail filtering if timezone not handled
+        // For example: 2026-02-22T23:00:00.000Z is Feb 22 in UTC but Feb 23 in UTC+1 timezone
+        // This tests the fix that converts UTC timestamps to local timezone before comparing
+        const transactions = [
+            {
+                ' ': '2026-02-22T22:00:00.000Z', // Feb 22 UTC, but might be Feb 23 in some timezones
+                dayOfWeek: 'Monday',
+                type: 'Expense',
+                amount: 100,
+                category: 'Groceries',
+                account: 'Ale',
+                payee: 'Market',
+                notes: 'Shopping',
+                rowIndex: 2
+            },
+            {
+                ' ': today + 'T10:00:00.000Z', // Today at 10 AM UTC
+                dayOfWeek: 'Tuesday',
+                type: 'Income',
+                amount: 500,
+                category: 'Account',
+                account: 'Ale',
+                payee: 'Salary',
+                notes: 'Payment',
+                rowIndex: 3
+            },
+            {
+                ' ': today + 'T23:59:59.000Z', // Today at 11:59 PM UTC
+                dayOfWeek: 'Tuesday',
+                type: 'Expense',
+                amount: 25,
+                category: 'Entertainment',
+                account: 'Ale',
+                payee: 'App',
+                notes: 'Subscription',
+                rowIndex: 4
+            }
+        ];
+
+        await page.route('**/script.google.com/**', async (route) => {
+            const url = route.request().url();
+            const callbackMatch = url.match(/[?&]callback=([^&]+)/);
+            
+            if (callbackMatch) {
+                const cbName = callbackMatch[1];
+                const data = url.includes('getRecurringTransactions')
+                    ? { recurringTransactions: [] }
+                    : { transactions };
+                await route.fulfill({
+                    contentType: 'application/javascript',
+                    body: `${cbName}(${JSON.stringify(data)})`
+                });
+            } else {
+                await route.fulfill({ status: 200, body: '' });
+            }
+        });
+
+        await page.goto('/');
+        await page.waitForSelector(selectors.homePageActive, { timeout: 10000 });
+
+        // Navigate to charts
+        await page.locator(selectors.chartsNavLink).click();
+        await page.waitForSelector(selectors.chartsPageActive, { timeout: 10000 });
+        await page.waitForTimeout(1000);
+
+        // Click "Today" button to filter for today's transactions
+        const todayBtn = page.locator(selectors.todayBtn);
+        await expect(todayBtn).toBeVisible();
+        await todayBtn.click();
+        await page.waitForTimeout(500);
+
+        // Verify date inputs are set to today
+        const startDateInput = page.locator(selectors.chartStartDate);
+        const endDateInput = page.locator(selectors.chartEndDate);
+        
+        const startValue = await startDateInput.inputValue();
+        const endValue = await endDateInput.inputValue();
+        
+        expect(startValue).toBe(today);
+        expect(endValue).toBe(today);
+
+        // Charts should be visible and contain today's data
+        // (at least the two transactions with today + UTC times)
+        await expect(page.locator(selectors.expensesCategoryChart)).toBeVisible();
+        await expect(page.locator(selectors.expensesVsIncomeChart)).toBeVisible();
+
+        // The charts should have rendered data (not showing "no data" message)
+        // This verifies that the timezone conversion worked and the transactions were included
+        const chartsContainer = page.locator('.charts-container');
+        const noDataMessages = chartsContainer.locator('.no-data-message');
+        
+        // Count should be 0 (no "no data" messages) since we have data for today
+        const noDataCount = await noDataMessages.count();
+        expect(noDataCount).toBe(0);
+    });
+});

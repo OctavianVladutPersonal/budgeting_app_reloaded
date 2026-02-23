@@ -96,17 +96,25 @@ async function loadAndDisplayCharts(forceRefresh = false) {
             }
         }
         
-        if (data && data.transactions && Array.isArray(data.transactions)) {
-            allTransactions = data.transactions;
-            
-            // Debug: Log first few transactions to see date format
-            if (data.transactions.length > 0) {
-                // Check for today's transactions specifically
-                const todaysTransactions = data.transactions.filter(t => {
-                    const txDateStr = typeof t.date === 'string' ? t.date : String(t.date);
-                    return txDateStr.includes('2026-02-06') || txDateStr.includes('02/06/2026') || txDateStr.includes('6/2/2026');
-                });
+        // Handle different data formats (same as transactions.js)
+        let transactions = null;
+        
+        if (Array.isArray(data)) {
+            // Data is directly an array
+            transactions = data;
+        } else if (data && data.transactions && Array.isArray(data.transactions)) {
+            // Data has transactions property
+            transactions = data.transactions;
+        } else if (data && typeof data === 'object') {
+            // Data might be an object with array values
+            const keys = Object.keys(data);
+            if (keys.length > 0 && Array.isArray(data[keys[0]])) {
+                transactions = data[keys[0]];
             }
+        }
+        
+        if (transactions && transactions.length > 0) {
+            allTransactions = transactions;
             
             // Set default date range to current month
             setDefaultDateRange();
@@ -120,6 +128,7 @@ async function loadAndDisplayCharts(forceRefresh = false) {
             // Mark as initialized
             chartsInitialized = true;
         } else {
+            console.error('Charts: No transactions found. Data structure:', data);
             // Show a message to the user
             showMessage('No transaction data available. Please ensure your Google Sheet is properly configured and contains data.');
         }
@@ -252,43 +261,72 @@ function setFilterAndApply(filterType) {
 function updateChartsWithFilter() {
     const startDate = document.getElementById('chartStartDate').value;
     const endDate = document.getElementById('chartEndDate').value;
-    
+
     if (!startDate || !endDate) {
         alert(I18n.t('error.selectDates'));
         return;
     }
 
-    // Debug: Show all transaction dates to understand format
     
     // Filter transactions by date range (inclusive)
     const filteredTransactions = allTransactions.filter(transaction => {
-        let txDate = transaction.date;
-        let originalTxDate = txDate;
+        let txDate = transaction.Date || transaction.date || transaction.d || transaction.D || transaction[' '];
+        let localDate = '';
         
-        // Handle different date formats and strip whitespace
+        // Handle different date formats and convert to local date in YYYY-MM-DD format
         if (typeof txDate === 'object' && txDate.getTime) {
-            txDate = txDate.toISOString().split('T')[0];
+            // Date object - convert to local date
+            const year = txDate.getFullYear();
+            const month = String(txDate.getMonth() + 1).padStart(2, '0');
+            const day = String(txDate.getDate()).padStart(2, '0');
+            localDate = `${year}-${month}-${day}`;
         } else if (typeof txDate === 'number') {
-            txDate = new Date(txDate).toISOString().split('T')[0];
-        } else if (txDate && txDate.includes('T')) {
-            txDate = txDate.split('T')[0];
-        } else if (txDate) {
-            // Ensure it's a string in YYYY-MM-DD format and trim whitespace
-            txDate = String(txDate).trim();
-        }
-        
-        // Debug log for dates that should match
-        if (txDate === '2026-02-06') {
-            // Transaction found for today
-        }
-        
-        // Debug log for any February 2026 transaction
-        if (txDate && txDate.startsWith('2026-02')) {
-            // February 2026 transaction found
+            // Timestamp - convert to local date
+            const dateObj = new Date(txDate);
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            localDate = `${year}-${month}-${day}`;
+        } else if (txDate && typeof txDate === 'string') {
+            if (txDate.includes('T')) {
+                // ISO format with time - parse and convert to local date
+                try {
+                    const dateObj = new Date(txDate);
+                    if (!isNaN(dateObj.getTime())) {
+                        const year = dateObj.getFullYear();
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        localDate = `${year}-${month}-${day}`;
+                    } else {
+                        // Failed to parse, use as-is
+                        localDate = txDate.split('T')[0];
+                    }
+                } catch (e) {
+                    localDate = txDate.split('T')[0];
+                }
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(txDate)) {
+                // Already in YYYY-MM-DD format
+                localDate = txDate;
+            } else {
+                // Try to parse other formats
+                try {
+                    const dateObj = new Date(txDate + 'T00:00:00');
+                    if (!isNaN(dateObj.getTime())) {
+                        const year = dateObj.getFullYear();
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        localDate = `${year}-${month}-${day}`;
+                    } else {
+                        localDate = txDate;
+                    }
+                } catch (e) {
+                    localDate = txDate;
+                }
+            }
         }
         
         // Compare dates as strings (YYYY-MM-DD format allows proper string comparison)
-        const isInRange = txDate >= startDate && txDate <= endDate;
+        const isInRange = localDate >= startDate && localDate <= endDate;
         
         return isInRange;
     });
@@ -310,21 +348,21 @@ function updateChartsWithFilter() {
  * Display all charts
  */
 function displayCharts(transactions) {
-    const expenses = transactions.filter(t => t.type === 'Expense');
-    const income = transactions.filter(t => t.type === 'Income');
-    
+    const expenses = transactions.filter(t => (t.Type || t.type) === 'Expense');
+    const income = transactions.filter(t => (t.Type || t.type) === 'Income');
+
     // Calculate expenses by category
     const categoryData = {};
     expenses.forEach(transaction => {
-        const category = transaction.category || 'Uncategorized';
-        const amount = parseFloat(transaction.amount) || 0;
+        const category = transaction.Category || transaction.category || 'Uncategorized';
+        const amount = parseFloat(transaction.Amount || transaction.amount) || 0;
         categoryData[category] = (categoryData[category] || 0) + amount;
     });
     
     // Calculate total expenses and income
-    const totalExpenses = expenses.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-    const totalIncome = income.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
-    
+    const totalExpenses = expenses.reduce((sum, t) => sum + (parseFloat(t.Amount || t.amount) || 0), 0);
+    const totalIncome = income.reduce((sum, t) => sum + (parseFloat(t.Amount || t.amount) || 0), 0);
+
     // Display pie chart for expenses by category
     displayExpensesCategoryChart(categoryData);
     
@@ -387,44 +425,48 @@ function displayExpensesCategoryChart(categoryData) {
     // Generate colors for pie chart
     const colors = generateColors(labels.length);
     
-    expensesCategoryChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: colors,
-                borderColor: '#fff',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: {
-                            size: 12
+    try {
+        expensesCategoryChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
                         }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.label || '';
-                            const value = context.parsed || 0;
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return label + ': ' + value.toFixed(2) + ' Ron (' + percentage + '%)';
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': ' + value.toFixed(2) + ' Ron (' + percentage + '%)';
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Error creating pie chart:', error);
+    }
 }
 
 /**
@@ -448,63 +490,67 @@ function displayExpensesVsIncomeChart(totalExpenses, totalIncome) {
         expensesVsIncomeChart.destroy();
     }
     
-    expensesVsIncomeChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Total'],
-            datasets: [
-                {
-                    label: 'Income',
-                    data: [totalIncome],
-                    backgroundColor: '#28a745',
-                    borderColor: '#28a745',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Expenses',
-                    data: [totalExpenses],
-                    backgroundColor: '#dc3545',
-                    borderColor: '#dc3545',
-                    borderWidth: 1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            indexAxis: 'y',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        padding: 15,
-                        font: {
-                            size: 12
-                        }
+    try {
+        expensesVsIncomeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Total'],
+                datasets: [
+                    {
+                        label: 'Income',
+                        data: [totalIncome],
+                        backgroundColor: '#28a745',
+                        borderColor: '#28a745',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Expenses',
+                        data: [totalExpenses],
+                        backgroundColor: '#dc3545',
+                        borderColor: '#dc3545',
+                        borderWidth: 1
                     }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const label = context.dataset.label || '';
-                            const value = context.parsed.x || 0;
-                            return label + ': ' + value.toFixed(2) + ' Ron';
-                        }
-                    }
-                }
+                ]
             },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toFixed(0);
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.x || 0;
+                                return label + ': ' + value.toFixed(2) + ' Ron';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(0);
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Error creating expenses vs income chart:', error);
+    }
 }
 
 /**
@@ -534,7 +580,7 @@ function displayExpensesCategoryBarChart(categoryData) {
     
     const labels = sortedCategories.map(entry => entry[0]);
     const data = sortedCategories.map(entry => entry[1]);
-    
+
     // Check if there's data to display
     if (labels.length === 0) {
         const chartWrapper = ctx.closest('.chart-wrapper');
@@ -563,57 +609,61 @@ function displayExpensesCategoryBarChart(categoryData) {
     // Generate colors for each category
     const colors = generateColors(labels.length);
     
-    expensesCategoryBarChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Amount (Ron)',
-                data: data,
-                backgroundColor: colors,
-                borderColor: colors,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            indexAxis: 'y', // Makes it horizontal
-            plugins: {
-                legend: {
-                    display: false // Hide legend since we already have labels
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const value = context.parsed.x || 0;
-                            return 'Amount: ' + value.toFixed(2) + ' Ron';
+    try {
+        expensesCategoryBarChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Amount (Ron)',
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: colors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                indexAxis: 'y', // Makes it horizontal
+                plugins: {
+                    legend: {
+                        display: false // Hide legend since we already have labels
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.x || 0;
+                                return 'Amount: ' + value.toFixed(2) + ' Ron';
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toFixed(0);
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(0);
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Amount (Ron)'
                         }
                     },
-                    title: {
-                        display: true,
-                        text: 'Amount (Ron)'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Category'
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Category'
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Error creating bar chart:', error);
+    }
 }
 
 /**
@@ -685,8 +735,10 @@ function updateCharts() {
     }
 }
 
-// Make retryLoadCharts available globally
+// Make functions available globally
+window.loadAndDisplayCharts = loadAndDisplayCharts;
 window.retryLoadCharts = retryLoadCharts;
+window.updateCharts = updateCharts;
 
 /**
  * Debug helper - manually check what today's date should be

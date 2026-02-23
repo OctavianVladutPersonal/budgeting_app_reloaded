@@ -535,6 +535,11 @@ function getAllTransactions(sheet, callback) {
           var headerKey = headers[j];
           var value = data[i][j];
           
+          // Trim header key to handle malformed headers with extra spaces
+          if (typeof headerKey === 'string') {
+            headerKey = headerKey.trim();
+          }
+          
           // Convert header names to lowercase for consistency with frontend
           switch (headerKey) {
             case 'Date':
@@ -628,6 +633,11 @@ function getRecurringTransactions(sheet, callback) {
         for (var j = 0; j < headers.length && j < data[i].length; j++) {
           var headerKey = headers[j];
           var value = data[i][j];
+          
+          // Trim header key to handle malformed headers with extra spaces
+          if (typeof headerKey === 'string') {
+            headerKey = headerKey.trim();
+          }
           
           switch (headerKey) {
             case 'Date':
